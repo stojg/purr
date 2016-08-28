@@ -46,9 +46,8 @@ func (c *config) validate() []error {
 }
 func main() {
 	conf := newConfig()
-	errors := conf.validate()
 
-	if len(errors) > 0 {
+	if errors := conf.validate(); len(errors) > 0 {
 		for i := range errors {
 			fmt.Println(errors[i])
 		}
@@ -56,7 +55,7 @@ func main() {
 	}
 
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+		&oauth2.Token{AccessToken: conf.githubToken},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 	client := github.NewClient(tc)
