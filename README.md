@@ -6,6 +6,10 @@ Send open Github requests to a Slack channel
 
 `go get -u github.com/stojg/purr`
 
+... or download one of the binaries for your platform from https://github.com/stojg/purr/releases
+
+If you want to cross-compile for other platform, see http://golangcookbook.com/chapters/running/cross-compiling/
+
 ## configuration
 
 ```
