@@ -64,7 +64,7 @@ func main() {
 		message += fmt.Sprintf("*%s*\n", gitRepo)
 
 		for _, pr := range prs {
-			message += fmt.Sprintf(" - %s %s %s\n", *pr.Title, *pr.HTMLURL, *pr.User.Login)
+			message += fmt.Sprintf(" • <%s|%s> - %s\n", *pr.HTMLURL, *pr.Title, *pr.User.Login)
 		}
 		message += fmt.Sprintf("\n")
 	}
@@ -76,7 +76,4 @@ func main() {
 			panic(err)
 		}
 	}
-
-	fmt.Println(message)
-
 }
