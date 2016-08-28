@@ -10,70 +10,96 @@ import (
 )
 
 type config struct {
-	repos []string
+	githubToken  string
+	githubRepos  []string
+	slackToken   string
+	slackChannel string
 }
 
+func newConfig() *config {
+	c := &config{}
+	c.githubToken = os.Getenv("GITHUB_TOKEN")
+	if os.Getenv("GITHUB_REPOS") != "" {
+		c.githubRepos = strings.Split(os.Getenv("GITHUB_REPOS"), ",")
+	}
+	c.slackToken = os.Getenv("SLACK_TOKEN")
+	c.slackChannel = os.Getenv("SLACK_CHANNEL")
+	return c
+}
+
+func (c *config) validate() []error {
+	var errors []error
+	if c.githubToken == "" {
+		errors = append(errors, fmt.Errorf("err: no token defined in ENV 'GITHUB_TOKEN'"))
+	}
+	if c.slackToken == "" {
+		errors = append(errors, fmt.Errorf("err: no token found in ENV 'SLACK_TOKEN'"))
+	}
+	if len(c.githubRepos) == 0 {
+		errors = append(errors, fmt.Errorf("err: no repos defined in ENV 'GITHUB_REPOS'"))
+	}
+	if c.slackChannel == "" {
+		errors = append(errors, fmt.Errorf("err: no slack channel found in ENV 'SLACK_CHANNEL'"))
+	}
+
+	return errors
+}
 func main() {
+	conf := newConfig()
+	errors := conf.validate()
 
-	envRepos := os.Getenv("GITHUB_REPOS")
-	if envRepos == "" {
-		panic("No repos defined in ENV 'GITHUB_REPOS'")
-	}
-
-	repos := strings.Split(envRepos, ",")
-
-	if len(repos) == 0 {
-		panic("No repos defined in ENV 'GITHUB_REPOS'")
-	}
-
-	githubToken := os.Getenv("GITHUB_TOKEN")
-	if githubToken == "" {
-		panic("No token defined in ENV 'GITHUB_TOKEN'")
-	}
-
-	slackToken := os.Getenv("SLACK_TOKEN")
-	if slackToken == "" {
-		panic("No token found in ENV 'SLACK_TOKEN'")
-	}
-
-	slackChannel := os.Getenv("SLACK_CHANNEL")
-	if slackChannel == "" {
-		panic("No slack channel found in ENV 'SLACK_CHANNEL'")
+	if len(errors) > 0 {
+		for i := range errors {
+			fmt.Println(errors[i])
+		}
+		os.Exit(1)
 	}
 
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
-
 	client := github.NewClient(tc)
 
 	message := ""
 
-	for _, gitRepo := range repos {
-
-		parts := strings.Split(gitRepo, "/")
-
-		prs, _, err := client.PullRequests.List(parts[0], parts[1], nil)
-		if err != nil {
-			panic(err)
-		}
-		if len(prs) == 0 {
+	for _, repo := range conf.githubRepos {
+		parts := strings.Split(repo, "/")
+		if len(parts) != 2 {
+			fmt.Printf("%s is not a valid github repository, skipping\n", repo)
 			continue
 		}
-		message += fmt.Sprintf("*%s*\n", gitRepo)
 
-		for _, pr := range prs {
+		pullRequests, _, err := client.PullRequests.List(parts[0], parts[1], nil)
+		if err != nil {
+			fmt.Printf("while fetching pull requests from '%s': %s\n", repo, err)
+			continue
+		}
+
+		if len(pullRequests) == 0 {
+			continue
+		}
+
+		message += fmt.Sprintf("*%s*\n", repo)
+		for _, pr := range pullRequests {
 			message += fmt.Sprintf(" • <%s|%s> - %s\n", *pr.HTMLURL, *pr.Title, *pr.User.Login)
 		}
 		message += fmt.Sprintf("\n")
 	}
 
 	if message != "" {
-		slack := slack.New(slackToken)
-		err := slack.ChatPostMessage(slackChannel, message, nil)
+		client := slack.New(conf.slackToken)
+
+		opt := &slack.ChatPostMessageOpt{
+			AsUser: false,
+			Username: "purr",
+			IconEmoji: ":purr:",
+		}
+
+		err := client.ChatPostMessage(conf.slackChannel, message, opt)
 		if err != nil {
-			panic(err)
+			fmt.Printf("while sending slack request: %s\n", err)
+			os.Exit(1)
 		}
 	}
 }
