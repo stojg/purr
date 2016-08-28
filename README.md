@@ -15,6 +15,12 @@ export SLACK_TOKEN="super_siikrit_slack_token"
 export SLACK_CHANNEL="my_slack_room"
 ```
 
-## do it
+## run it
 
 `purr`
+
+This is a one shot action, so you might want to put into a cron or a [systemd timer unit](https://wiki.archlinux.org/index.php/Systemd/Timers)
+
+## End result:
+
+![example.png](./_docs/example.png)
