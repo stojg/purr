@@ -1,6 +1,15 @@
 # purr
 
-Send open Github requests to a Slack channel
+Send a list of open github pull requests to a Slack channel.
+
+## Motivation
+
+Peer reviews are a really good way to work and communicate as a team. Unfortunately, it's easy for open pull requests to be to get lost in the daily noise of emails, meetings other direct messaging.
+
+Two of the corner stones of agile development is to shorten the feedback loop and reduce waste (waste as in work done, but not deployed). Open pull requests are a good example of waiting for feedback and waste. They should either be worked on until they can be merged and deployed or closed.
+
+This little program is meant to be used as a periodic reminder of what github pull requests are currently open and awaiting review. It's your parent telling you to clean your room, if you set it up correctly.
+
 
 ## installation
 
