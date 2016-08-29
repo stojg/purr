@@ -90,8 +90,8 @@ func main() {
 		client := slack.New(conf.slackToken)
 
 		opt := &slack.ChatPostMessageOpt{
-			AsUser: false,
-			Username: "purr",
+			AsUser:    false,
+			Username:  "purr",
 			IconEmoji: ":purr:",
 		}
 
