@@ -118,6 +118,9 @@ func getGithub(conf *config, message io.Writer) {
 
 		fmt.Fprintf(message, "*%s*\n", repo)
 		for _, pr := range pullRequests {
+			if isWIP(*pr.Title) {
+				continue
+			}
 			timeAgo := humanize.Time(*pr.UpdatedAt)
 			fmt.Fprintf(message, " • <%s|%s> - %s - updated %s\n", *pr.HTMLURL, *pr.Title, *pr.User.Login, timeAgo)
 		}
@@ -150,11 +153,17 @@ func getGitlab(conf *config, message io.Writer) {
 
 		fmt.Fprintf(message, "*%s*\n", repo)
 		for _, pr := range pullRequests {
+			if isWIP(pr.Title) {
+				continue
+			}
 			timeAgo := humanize.Time(*pr.UpdatedAt)
 			webLink := fmt.Sprintf("%s/%s/merge_requests/%d", conf.gitlabURL, repo, pr.IID)
 			fmt.Fprintf(message, " • <%s|%s> - %s - updated %s\n", webLink, pr.Title, pr.Author.Username, timeAgo)
 		}
 		fmt.Fprintf(message, "\n")
 	}
+}
 
+func isWIP(s string) bool {
+	return strings.Contains(s, "[WIP]") || strings.Contains(s, "WIP:")
 }
