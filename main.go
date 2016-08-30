@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/bluele/slack"
+	"github.com/dustin/go-humanize"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 	"os"
@@ -81,7 +82,8 @@ func main() {
 
 		message += fmt.Sprintf("*%s*\n", repo)
 		for _, pr := range pullRequests {
-			message += fmt.Sprintf(" • <%s|%s> - %s\n", *pr.HTMLURL, *pr.Title, *pr.User.Login)
+			timeAgo := humanize.Time(*pr.UpdatedAt)
+			message += fmt.Sprintf(" • <%s|%s> - %s - updated %s\n", *pr.HTMLURL, *pr.Title, *pr.User.Login, timeAgo)
 		}
 		message += fmt.Sprintf("\n")
 	}
