@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/bluele/slack"
 	"github.com/dustin/go-humanize"
 	"github.com/google/go-github/github"
+	"github.com/xanzy/go-gitlab"
 	"golang.org/x/oauth2"
+	"io"
 	"os"
 	"strings"
 )
@@ -13,6 +16,9 @@ import (
 type config struct {
 	githubToken  string
 	githubRepos  []string
+	gitlabToken  string
+	gitlabRepos  []string
+	gitlabURL    string
 	slackToken   string
 	slackChannel string
 }
@@ -23,6 +29,11 @@ func newConfig() *config {
 	if os.Getenv("GITHUB_REPOS") != "" {
 		c.githubRepos = strings.Split(os.Getenv("GITHUB_REPOS"), ",")
 	}
+	c.gitlabToken = os.Getenv("GITLAB_TOKEN")
+	if os.Getenv("GITLAB_REPOS") != "" {
+		c.gitlabRepos = strings.Split(os.Getenv("GITLAB_REPOS"), ",")
+	}
+	c.gitlabURL = os.Getenv("GITLAB_URL")
 	c.slackToken = os.Getenv("SLACK_TOKEN")
 	c.slackChannel = os.Getenv("SLACK_CHANNEL")
 	return c
@@ -55,14 +66,39 @@ func main() {
 		os.Exit(1)
 	}
 
+	var message []byte
+	buf := bytes.NewBuffer(message)
+
+	getGithub(conf, buf)
+	getGitlab(conf, buf)
+	sendToSlack(conf, buf)
+
+}
+
+func sendToSlack(conf *config, message fmt.Stringer) {
+
+	if message.String() != "" {
+		client := slack.New(conf.slackToken)
+		opt := &slack.ChatPostMessageOpt{
+			AsUser:    false,
+			Username:  "purr",
+			IconEmoji: ":purr:",
+		}
+		err := client.ChatPostMessage(conf.slackChannel, message.String(), opt)
+		if err != nil {
+			fmt.Printf("while sending slack request: %s\n", err)
+			os.Exit(1)
+		}
+	}
+
+}
+
+func getGithub(conf *config, message io.Writer) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: conf.githubToken},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 	client := github.NewClient(tc)
-
-	message := ""
-
 	for _, repo := range conf.githubRepos {
 		parts := strings.Split(repo, "/")
 		if len(parts) != 2 {
@@ -80,27 +116,45 @@ func main() {
 			continue
 		}
 
-		message += fmt.Sprintf("*%s*\n", repo)
+		fmt.Fprintf(message, "*%s*\n", repo)
 		for _, pr := range pullRequests {
 			timeAgo := humanize.Time(*pr.UpdatedAt)
-			message += fmt.Sprintf(" • <%s|%s> - %s - updated %s\n", *pr.HTMLURL, *pr.Title, *pr.User.Login, timeAgo)
+			fmt.Fprintf(message, " • <%s|%s> - %s - updated %s\n", *pr.HTMLURL, *pr.Title, *pr.User.Login, timeAgo)
 		}
-		message += fmt.Sprintf("\n")
+		fmt.Fprintf(message, "\n")
+	}
+}
+
+func getGitlab(conf *config, message io.Writer) {
+
+	if conf.gitlabURL == "" {
+		return
 	}
 
-	if message != "" {
-		client := slack.New(conf.slackToken)
+	client := gitlab.NewClient(nil, conf.gitlabToken)
+	client.SetBaseURL(conf.gitlabURL + "/api/v3")
+	status := "opened"
+	options := &gitlab.ListMergeRequestsOptions{
+		State: &status,
+	}
 
-		opt := &slack.ChatPostMessageOpt{
-			AsUser:    false,
-			Username:  "purr",
-			IconEmoji: ":purr:",
-		}
-
-		err := client.ChatPostMessage(conf.slackChannel, message, opt)
+	for _, repo := range conf.gitlabRepos {
+		pullRequests, _, err := client.MergeRequests.ListMergeRequests(repo, options)
 		if err != nil {
-			fmt.Printf("while sending slack request: %s\n", err)
-			os.Exit(1)
+			fmt.Printf("%s\n", err)
+			continue
 		}
+		if len(pullRequests) == 0 {
+			continue
+		}
+
+		fmt.Fprintf(message, "*%s*\n", repo)
+		for _, pr := range pullRequests {
+			timeAgo := humanize.Time(*pr.UpdatedAt)
+			webLink := fmt.Sprintf("%s/%s/merge_requests/%d", conf.gitlabURL, repo, pr.IID)
+			fmt.Fprintf(message, " • <%s|%s> - %s - updated %s\n", webLink, pr.Title, pr.Author.Username, timeAgo)
+		}
+		fmt.Fprintf(message, "\n")
 	}
+
 }
