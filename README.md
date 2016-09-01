@@ -22,27 +22,56 @@ If you want to cross-compile for other platform, see http://golangcookbook.com/c
 
 ## configuration
 
+purr can be configured with a JSON file and ENV variables. The ENV variables takes
+precedence over the file configuration.
+
+Example JSON
+
+```
+{
+  "github_token": "secret_token",
+  "github_repos": [
+    "user1/repo1",
+    "user2/repo1"
+  ],
+  "gitlab_token": "secret_token",
+  "gitlab_repos": [
+    "project1/repo1",
+    "project2/repo1"
+  ],
+  "gitlab_url": "https://www.example.com",
+  "slack_token": "secret_token",
+  "slack_channel": "myteamchat",
+  "user_whitelist": [
+    "user1",
+    "user2"
+  ]
+}
+```
+
+The ENV variables are
+
 ```
 export GITHUB_TOKEN="<super_secret_github token>"
 export GITHUB_REPOS="user_org/repo1,user_org/repo2" # comma separated
+export GITLAB_TOKEN="<super_secret_github token>"
+export GITLAB_URL="http://example.com"
+export GITLAB_REPOS="project1/repo1,project2/repo1"
 export SLACK_TOKEN="<super_secret_slack_token>"
 export SLACK_CHANNEL="my_slack_room"
+export USER_WHITELIST="user1,user2"
 ```
 
-Optional configuration for Gitlab is
+GitLab configuration is optional.
 
-```
-export GITLAB_TOKEN="<super_secret_gitlab token>"
-export GITLAB_URL="https://gitlab.example.com"
-export GITLAB_REPOS="namespace/project1,namespace/project2"
-```
+User whitelist will only show PR created by or assigned to that user.
 
 It will send the message as a bot user with the name `purr` and use the emoticon
 `:purr:` as its avatar in slack.
 
 ## run it
 
-`purr`
+`purr --config my_team.json`
 
 This is a one shot action, so you might want to put into a cron or a [systemd timer unit](https://wiki.archlinux.org/index.php/Systemd/Timers)
 
@@ -53,7 +82,7 @@ GITHUB_TOKEN="<super_secret_github token>"
 SLACK_TOKEN="<super_secret_slack_token>"
 GITHUB_REPOS="user_org/repo1,user_org/repo2" # comma separated
 SLACK_CHANNEL="my_slack_room"
-0 8 * * * username /usr/bin/purr
+0 8 * * * username /usr/bin/purr --config /etc/purr/my_team.json
 ```
 
 ## End result:
