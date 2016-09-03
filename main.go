@@ -62,19 +62,27 @@ func main() {
 		usageAndExit(buf.String(), 1)
 	}
 
+	// these function will return channels that will emit a list of pull requests
+	// on channels and close the channel when they are done
 	gitHubPRs := trawlGitHub(conf)
 	gitLabPRs := trawlGitLab(conf)
 
+	// Merge the in channels into of channel and close it when the inputs are done
 	prs := merge(gitHubPRs, gitLabPRs)
 
+	// filter out pull requests that we don't want to send
 	filteredPRs := filter(conf, prs)
 
+	// format takes a channel of pull requests and returns a message that groups
+	// pull request into repos and formats them into a slack friendly format
 	message := format(filteredPRs)
 
+	// Output what slack will send if we are in debug mode
 	if debug {
 		logrus.Debugf("Final message:\n%s", message)
 	}
 
+	// Send to slack
 	postToSlack(conf, message)
 }
 
@@ -82,13 +90,15 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 
 	out := make(chan *PullRequest)
 
+	// create a sync group that is used to close the out channel when all github repos has been
+	// trawled
 	var wg sync.WaitGroup
 
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: conf.GitHubToken})
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 	client := github.NewClient(tc)
 
-	// check for wildcards and expand them
+	// check for wildcards in the repo name and expand them into individual repos
 	var repos []string
 	for _, repoName := range conf.GitHubRepos {
 		repoParts := strings.Split(repoName, "/")
@@ -111,19 +121,25 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 		}
 	}
 
-	// spin out each request to find PR on a repo into a separate goroutine
+	// spin out each request to find PRs on a repo into a separate goroutine so we fetch them
+	// asynchronous
 	for _, repo := range repos {
 
+		// increment the wait group
 		wg.Add(1)
 
 		go func(repoName string) {
+			// when finished, decrement the wait group
 			defer wg.Done()
 			logrus.Debugf("Starting fetch from %s", repoName)
 
 			parts := strings.Split(repoName, "/")
 
+			// nextPage keeps track of of the current page of the paginataed response from the
+			// GitHub API
 			nextPage := 1
 			for {
+				// options for the request for PRs
 				options := &github.PullRequestListOptions{
 					State:     "open",
 					Sort:      "updated",
@@ -133,12 +149,14 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 					},
 				}
 
+				// get the pull requests
 				pullRequests, resp, err := client.PullRequests.List(parts[0], parts[1], options)
 				if err != nil {
 					logrus.Errorf("While fetching PRs from GitHub (%s/%s): %s", parts[0], parts[1], err)
 					return
 				}
 
+				// transform the GitHub pull request struct into a provider agnostic struct
 				for _, pr := range pullRequests {
 					pullRequest := &PullRequest{
 						ID:         *pr.Number,
@@ -151,17 +169,22 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 					if pr.Assignee != nil {
 						pullRequest.Assignee = *pr.Assignee.Login
 					}
+
+					// push to the outchannel
 					out <- pullRequest
 				}
-				nextPage++
+
+				// the GitHub API returns 0 as the LastPage if there are no more pages of result
 				if resp.LastPage == 0 {
 					break
 				}
+				nextPage++
 
 			}
 		}(repo)
 	}
 
+	// Spin off a go routine that will close the channel when all repos have finished
 	go func() {
 		wg.Wait()
 		logrus.Debugf("Done with github")
@@ -174,6 +197,8 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 func trawlGitLab(conf *Config) <-chan *PullRequest {
 	out := make(chan *PullRequest)
 
+	// create a sync group that is used to close the out channel when all gitlab repos has been
+	// trawled
 	var wg sync.WaitGroup
 
 	client := gitlab.NewClient(nil, conf.GitLabToken)
@@ -187,6 +212,7 @@ func trawlGitLab(conf *Config) <-chan *PullRequest {
 	// spin out each request to find PR on a repo into a separate goroutine
 	for _, repo := range conf.GitLabRepos {
 
+		// increment
 		wg.Add(1)
 
 		go func(repoName string) {
@@ -225,8 +251,8 @@ func merge(channels ...<-chan *PullRequest) <-chan *PullRequest {
 	var wg sync.WaitGroup
 	out := make(chan *PullRequest)
 
-	// Start an output goroutine for each input channel in cs. output copies values from c to out
-	// until c is closed, then calls wg.Done.
+	// Start an output goroutine for each input channel in channels. output copies values from prs
+	// to out until prs is closed, then calls wg.Done
 	output := func(prs <-chan *PullRequest) {
 		for pr := range prs {
 			out <- pr
@@ -240,8 +266,8 @@ func merge(channels ...<-chan *PullRequest) <-chan *PullRequest {
 		go output(c)
 	}
 
-	// Start a goroutine to close out once all the output goroutines are done.  This must start
-	// after the wg.Add call.
+	// Start a goroutine to close out once all the output goroutines are done. This must start after
+	// the wg.Add call
 	go func() {
 		wg.Wait()
 		close(out)
@@ -249,6 +275,8 @@ func merge(channels ...<-chan *PullRequest) <-chan *PullRequest {
 	return out
 }
 
+// filter removes pull requests that should not show up in the final message, this could
+// include PRs marked as Work in Progress or where users are not in the whitelist
 func filter(conf *Config, in <-chan *PullRequest) chan *PullRequest {
 	out := make(chan *PullRequest)
 
@@ -299,6 +327,8 @@ func format(prs <-chan *PullRequest) fmt.Stringer {
 	return buf
 }
 
+// postToSlack will post the message to Slack. It will divide the message into smaller message if
+// it's more than 30 lines long due to a max message size limitation enforced by the Slack API
 func postToSlack(conf *Config, message fmt.Stringer) {
 
 	const maxLines = 30
@@ -314,7 +344,7 @@ func postToSlack(conf *Config, message fmt.Stringer) {
 		IconEmoji: ":purr:",
 	}
 
-	// Dont send to large messages, send a new message per 40 new lines
+	// Don't send to large messages, send a new message per 40 new lines
 	lines := strings.Split(message.String(), "\n")
 	lineBuffer := make([]string, maxLines)
 	for i := range lines {
