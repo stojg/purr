@@ -130,6 +130,7 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 
 			for _, pr := range pullRequests {
 				pullRequest := &PullRequest{
+					ID:         *pr.Number,
 					Author:     *pr.User.Login,
 					TimeAgo:    humanize.Time(*pr.UpdatedAt),
 					WebLink:    *pr.HTMLURL,
@@ -181,6 +182,7 @@ func trawlGitLab(conf *Config) <-chan *PullRequest {
 			}
 			for _, pr := range pullRequests {
 				out <- &PullRequest{
+					ID:         pr.IID,
 					Author:     pr.Author.Username,
 					Assignee:   pr.Assignee.Username,
 					TimeAgo:    humanize.Time(*pr.UpdatedAt),
@@ -199,44 +201,6 @@ func trawlGitLab(conf *Config) <-chan *PullRequest {
 	}()
 
 	return out
-}
-
-func filter(conf *Config, in <-chan *PullRequest) chan *PullRequest {
-	out := make(chan *PullRequest)
-
-	go func() {
-		for list := range in {
-			if !list.isWIP() && list.isWhiteListed(conf) {
-				out <- list
-			} else {
-				logrus.Debugf("filtered pr '%s'", list.Title)
-			}
-		}
-		close(out)
-	}()
-
-	return out
-}
-
-// format converts all pull requests into a message that is grouped by repo formatted for slack
-func format(prs <-chan *PullRequest) fmt.Stringer {
-	grouped := make(map[string][]*PullRequest)
-	for pr := range prs {
-		if _, ok := grouped[pr.Repository]; !ok {
-			grouped[pr.Repository] = make([]*PullRequest, 0)
-		}
-		grouped[pr.Repository] = append(grouped[pr.Repository], pr)
-	}
-
-	buf := &bytes.Buffer{}
-	for repo, prs := range grouped {
-		fmt.Fprintf(buf, "*%s*\n", repo)
-		for i := range prs {
-			fmt.Fprintf(buf, "%s\n", prs[i])
-		}
-		fmt.Fprint(buf, "\n")
-	}
-	return buf
 }
 
 // merge merges several channels into one output channel (fan-in)
@@ -266,6 +230,43 @@ func merge(channels ...<-chan *PullRequest) <-chan *PullRequest {
 		close(out)
 	}()
 	return out
+}
+
+func filter(conf *Config, in <-chan *PullRequest) chan *PullRequest {
+	out := make(chan *PullRequest)
+
+	go func() {
+		for list := range in {
+			if !list.isWIP() && list.isWhiteListed(conf) {
+				out <- list
+			} else {
+				logrus.Debugf("filtered pr '%s'", list.Title)
+			}
+		}
+		close(out)
+	}()
+	return out
+}
+
+// format converts all pull requests into a message that is grouped by repo formatted for slack
+func format(prs <-chan *PullRequest) fmt.Stringer {
+	grouped := make(map[string][]*PullRequest)
+	for pr := range prs {
+		if _, ok := grouped[pr.Repository]; !ok {
+			grouped[pr.Repository] = make([]*PullRequest, 0)
+		}
+		grouped[pr.Repository] = append(grouped[pr.Repository], pr)
+	}
+
+	buf := &bytes.Buffer{}
+	for repo, prs := range grouped {
+		fmt.Fprintf(buf, "*%s*\n", repo)
+		for i := range prs {
+			fmt.Fprintf(buf, "%s\n", prs[i])
+		}
+		fmt.Fprint(buf, "\n")
+	}
+	return buf
 }
 
 func postToSlack(conf *Config, message fmt.Stringer) {

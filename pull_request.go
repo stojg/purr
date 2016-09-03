@@ -7,6 +7,7 @@ import (
 
 // PullRequest is a normalised version of PullRequest for the different providers
 type PullRequest struct {
+	ID         int
 	Author     string
 	Assignee   string
 	TimeAgo    string
@@ -32,7 +33,8 @@ func (p *PullRequest) isWhiteListed(config *Config) bool {
 }
 
 func (p *PullRequest) String() string {
-	output := fmt.Sprintf(" • <%s|%s> - by %s", p.WebLink, p.Title, p.Author)
+
+	output := fmt.Sprintf(" • <%s|PR #%d> %s  - _%s_", p.WebLink, p.ID, p.Title, p.Author)
 	if p.Assignee != "" {
 		output += fmt.Sprintf(", assigned to %s", p.Assignee)
 	}
