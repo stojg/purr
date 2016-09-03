@@ -300,17 +300,34 @@ func format(prs <-chan *PullRequest) fmt.Stringer {
 }
 
 func postToSlack(conf *Config, message fmt.Stringer) {
-	if message.String() != "" {
-		client := slack.New(conf.SlackToken)
-		opt := &slack.ChatPostMessageOpt{
-			AsUser:    false,
-			Username:  "purr",
-			IconEmoji: ":purr:",
-		}
-		err := client.ChatPostMessage(conf.SlackChannel, message.String(), opt)
-		if err != nil {
-			logrus.Errorf("Sending slack request: %s\n", err)
-			os.Exit(1)
+
+	const maxLines = 30
+
+	if message.String() == "" {
+		return
+	}
+
+	client := slack.New(conf.SlackToken)
+	opt := &slack.ChatPostMessageOpt{
+		AsUser:    false,
+		Username:  "purr",
+		IconEmoji: ":purr:",
+	}
+
+	// Dont send to large messages, send a new message per 40 new lines
+	lines := strings.Split(message.String(), "\n")
+	lineBuffer := make([]string, maxLines)
+	for i := range lines {
+		lineBuffer = append(lineBuffer, lines[i])
+		if len(lineBuffer) == cap(lineBuffer) || i+1 == len(lines) {
+			msg := strings.Join(lineBuffer, "\n")
+			if msg != "" {
+				if err := client.ChatPostMessage(conf.SlackChannel, msg, opt); err != nil {
+					logrus.Errorf("Slack: %s", err)
+					os.Exit(1)
+				}
+			}
+			lineBuffer = make([]string, cap(lineBuffer))
 		}
 	}
 }
