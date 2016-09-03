@@ -38,7 +38,7 @@ func (p *PullRequest) String() string {
 
 	output := fmt.Sprintf(" • <%s|PR #%d> %s  - _%s_", p.WebLink, p.ID, p.Title, p.Author)
 	if p.Assignee != "" {
-		output += fmt.Sprintf(", assigned to %s", p.Assignee)
+		output += fmt.Sprintf(", assigned to _%s_", p.Assignee)
 	}
 	output += fmt.Sprintf(" - updated %s", humanize.Time(p.Updated))
 	return output
