@@ -8,29 +8,27 @@ Slack notifier for open pull requests.
 
 ## motivation
 
-Peer reviews are a really good way to work and communicate as a team. Unfortunately it's easy for
-pull requests to be to get lost in the daily noise of emails, meetings and slack.
+Pull requests are a good way of getting feedback from your team members. But pull requests can
+easily get lost in the noise of daily communication and emails.
 
-Two of the corner stones of agile development is to shorten the feedback loop and reduce waste
-(waste as in work done, but not deployed). Open pull requests are a good example of waiting for
-feedback and waste. They should either be worked on until they can be merged and deployed or closed.
+Slack can be quite easily be hooked up with GitHub to send notices when new PR are opened, but they
+can be annoying. Purr can be configured to send a daily reminder, maybe in the morning with all the
+pull requests that are waiting for review.
 
 ## features
 
 - Sends the summary to a slack channel
 - List open pull requests from GitHub
 - Can be configured via a JSON file and environment variables
-- Use `user/*` in the repo configuration to get PRs for all repositories for that user
+- Use `user_or_organisation/*` in the repo configuration to get PRs for all repositories for that user or organisation
 - Can ignore PRs if the author or assignee is not in a whitelist
 - Ignores pull requests that contains `[WIP]` or `WIP:` in the title
 - Triggered via cron job or manually
 
-
 The slack message will be send by a user with the name `purr` and use the slack icon is the emoticon
 `:purr:`.
 
-
-Experimental features
+### Experimental features
 
 - GitLab integration
 
