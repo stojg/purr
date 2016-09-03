@@ -122,25 +122,42 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 
 			parts := strings.Split(repoName, "/")
 
-			pullRequests, _, err := client.PullRequests.List(parts[0], parts[1], nil)
-			if err != nil {
-				logrus.Errorf("While fetching PRs from GitHub (%s/%s): %s", parts[0], parts[1], err)
-				return
-			}
+			nextPage := 1
+			for {
+				options := &github.PullRequestListOptions{
+					State:     "open",
+					Sort:      "updated",
+					Direction: "desc",
+					ListOptions: github.ListOptions{
+						Page: nextPage,
+					},
+				}
 
-			for _, pr := range pullRequests {
-				pullRequest := &PullRequest{
-					ID:         *pr.Number,
-					Author:     *pr.User.Login,
-					Updated:    *pr.UpdatedAt,
-					WebLink:    *pr.HTMLURL,
-					Title:      *pr.Title,
-					Repository: fmt.Sprintf("%s/%s", parts[0], parts[1]),
+				pullRequests, resp, err := client.PullRequests.List(parts[0], parts[1], options)
+				if err != nil {
+					logrus.Errorf("While fetching PRs from GitHub (%s/%s): %s", parts[0], parts[1], err)
+					return
 				}
-				if pr.Assignee != nil {
-					pullRequest.Assignee = *pr.Assignee.Login
+
+				for _, pr := range pullRequests {
+					pullRequest := &PullRequest{
+						ID:         *pr.Number,
+						Author:     *pr.User.Login,
+						Updated:    *pr.UpdatedAt,
+						WebLink:    *pr.HTMLURL,
+						Title:      *pr.Title,
+						Repository: fmt.Sprintf("%s/%s", parts[0], parts[1]),
+					}
+					if pr.Assignee != nil {
+						pullRequest.Assignee = *pr.Assignee.Login
+					}
+					out <- pullRequest
 				}
-				out <- pullRequest
+				nextPage++
+				if resp.LastPage == 0 {
+					break
+				}
+
 			}
 		}(repo)
 	}
@@ -277,7 +294,7 @@ func format(prs <-chan *PullRequest) fmt.Stringer {
 
 	if numPRs > 0 {
 		fmt.Fprintf(buf, "\nThere are currently %d open pull requests", numPRs)
-		fmt.Fprintf(buf, " and the oldest PR (<%s|#%d>) was updated %s\n", oldest.WebLink, oldest.ID, humanize.Time(oldest.Updated))
+		fmt.Fprintf(buf, " and the oldest (<%s|PR #%d>) was updated %s\n", oldest.WebLink, oldest.ID, humanize.Time(oldest.Updated))
 	}
 	return buf
 }

@@ -10,10 +10,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - debug flag `-d`
 - github wildcard support
 - a short summary at the bottom of the message
+- pagination for github repos
 
 ### Changed
 - log output is formatted differently
 - asynchronous fetching of pull requests
+- sort gitlab pull requests on updated date
 
 ## [0.3.0] - 2016-09-02
 ### Added
