@@ -1,7 +1,6 @@
 # purr
 
-Send a list of open github pull requests to a Slack channel.
-
+Slack notifier for open pull requests.
 
 ## Screenshot
 
