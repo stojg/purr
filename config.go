@@ -20,18 +20,18 @@ type Config struct {
 	UserWhiteList []string `json:"user_whitelist"`
 }
 
-func newConfig() *Config {
+func newConfig(filePath string) (*Config, error) {
 
 	c := &Config{}
 
-	if configFile != "" {
-		file, e := ioutil.ReadFile(configFile)
-		if e != nil {
-			usageAndExit(e.Error(), 1)
+	if filePath != "" {
+		file, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			return c, fmt.Errorf("Error during config read: %s", err)
 		}
 
 		if err := json.Unmarshal(file, &c); err != nil {
-			usageAndExit(err.Error(), 1)
+			return c, fmt.Errorf("Error during config read: %s", err)
 		}
 	}
 
@@ -59,7 +59,7 @@ func newConfig() *Config {
 	if os.Getenv("USER_WHITELIST") != "" {
 		c.UserWhiteList = strings.Split(os.Getenv("USER_WHITELIST"), ",")
 	}
-	return c
+	return c, nil
 }
 
 func (c *Config) validate() []error {
