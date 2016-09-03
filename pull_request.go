@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"strings"
+	"time"
 )
 
 // PullRequest is a normalised version of PullRequest for the different providers
@@ -10,7 +12,7 @@ type PullRequest struct {
 	ID         int
 	Author     string
 	Assignee   string
-	TimeAgo    string
+	Updated    time.Time
 	WebLink    string
 	Title      string
 	Repository string
@@ -38,6 +40,6 @@ func (p *PullRequest) String() string {
 	if p.Assignee != "" {
 		output += fmt.Sprintf(", assigned to %s", p.Assignee)
 	}
-	output += fmt.Sprintf(" - updated %s", p.TimeAgo)
+	output += fmt.Sprintf(" - updated %s", humanize.Time(p.Updated))
 	return output
 }

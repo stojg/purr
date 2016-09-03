@@ -8,12 +8,12 @@ import (
 	"github.com/bluele/slack"
 	"github.com/dustin/go-humanize"
 	"github.com/google/go-github/github"
-	//"github.com/xanzy/go-gitlab"
 	"github.com/xanzy/go-gitlab"
 	"golang.org/x/oauth2"
 	"os"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -132,7 +132,7 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 				pullRequest := &PullRequest{
 					ID:         *pr.Number,
 					Author:     *pr.User.Login,
-					TimeAgo:    humanize.Time(*pr.UpdatedAt),
+					Updated:    *pr.UpdatedAt,
 					WebLink:    *pr.HTMLURL,
 					Title:      *pr.Title,
 					Repository: fmt.Sprintf("%s/%s", parts[0], parts[1]),
@@ -185,7 +185,7 @@ func trawlGitLab(conf *Config) <-chan *PullRequest {
 					ID:         pr.IID,
 					Author:     pr.Author.Username,
 					Assignee:   pr.Assignee.Username,
-					TimeAgo:    humanize.Time(*pr.UpdatedAt),
+					Updated:    *pr.UpdatedAt,
 					WebLink:    fmt.Sprintf("%s/%s/merge_requests/%d", conf.GitlabURL, repoName, pr.IID),
 					Title:      pr.Title,
 					Repository: repoName,
@@ -251,7 +251,15 @@ func filter(conf *Config, in <-chan *PullRequest) chan *PullRequest {
 // format converts all pull requests into a message that is grouped by repo formatted for slack
 func format(prs <-chan *PullRequest) fmt.Stringer {
 	grouped := make(map[string][]*PullRequest)
+	numPRs := 0
+	var oldest *PullRequest
+	lastUpdated := time.Now()
 	for pr := range prs {
+		if pr.Updated.Before(lastUpdated) {
+			oldest = pr
+			lastUpdated = pr.Updated
+		}
+		numPRs++
 		if _, ok := grouped[pr.Repository]; !ok {
 			grouped[pr.Repository] = make([]*PullRequest, 0)
 		}
@@ -265,6 +273,11 @@ func format(prs <-chan *PullRequest) fmt.Stringer {
 			fmt.Fprintf(buf, "%s\n", prs[i])
 		}
 		fmt.Fprint(buf, "\n")
+	}
+
+	if numPRs > 0 {
+		fmt.Fprintf(buf, "\nThere are currently %d open pull requests", numPRs)
+		fmt.Fprintf(buf, " and the oldest PR (<%s|#%d>) was updated %s\n", oldest.WebLink, oldest.ID, humanize.Time(oldest.Updated))
 	}
 	return buf
 }

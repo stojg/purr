@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - debug flag `-d`
 - github wildcard support
+- a short summary at the bottom of the message
 
 ### Changed
 - log output is formatted differently
