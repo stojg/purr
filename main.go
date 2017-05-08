@@ -27,11 +27,13 @@ const (
 var (
 	configFile string
 	debug      bool
+	cliOutput  bool
 )
 
 func init() {
 	flag.StringVar(&configFile, "config", "", "Read config from FILE")
 	flag.BoolVar(&debug, "d", false, "run in debug mode")
+	flag.BoolVar(&cliOutput, "o", false, "output to CLI rather than slack")
 
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, fmt.Sprintf(BANNER, VERSION))
@@ -83,8 +85,14 @@ func main() {
 		logrus.Debugf("Final message:\n%s", message)
 	}
 
-	// Send to slack
-	postToSlack(conf, message)
+	// If -o is set, just output
+	if cliOutput {
+		fmt.Print(message)
+
+	// Otherwise send to slack
+	} else {
+		postToSlack(conf, message)
+	}
 }
 
 func trawlGitHub(conf *Config) <-chan *PullRequest {
