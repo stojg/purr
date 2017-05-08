@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"context"
 )
 
 const (
@@ -26,11 +27,13 @@ const (
 var (
 	configFile string
 	debug      bool
+	cliOutput  bool
 )
 
 func init() {
 	flag.StringVar(&configFile, "config", "", "Read config from FILE")
 	flag.BoolVar(&debug, "d", false, "run in debug mode")
+	flag.BoolVar(&cliOutput, "o", false, "output to CLI rather than slack")
 
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, fmt.Sprintf(BANNER, VERSION))
@@ -82,8 +85,14 @@ func main() {
 		logrus.Debugf("Final message:\n%s", message)
 	}
 
-	// Send to slack
-	postToSlack(conf, message)
+	// If -o is set, just output
+	if cliOutput {
+		fmt.Print(message)
+
+	// Otherwise send to slack
+	} else {
+		postToSlack(conf, message)
+	}
 }
 
 func trawlGitHub(conf *Config) <-chan *PullRequest {
@@ -111,7 +120,7 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 			continue
 		}
 		logrus.Debugf("expanding wildcard on %s", repoName)
-		allRepos, _, err := client.Repositories.List(repoParts[0], nil)
+		allRepos, _, err := client.Repositories.List(context.Background(), repoParts[0], nil)
 		if err != nil {
 			logrus.Error(err)
 			continue
@@ -150,7 +159,7 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 				}
 
 				// get the pull requests
-				pullRequests, resp, err := client.PullRequests.List(parts[0], parts[1], options)
+				pullRequests, resp, err := client.PullRequests.List(context.Background(), parts[0], parts[1], options)
 				if err != nil {
 					logrus.Errorf("While fetching PRs from GitHub (%s/%s): %s", parts[0], parts[1], err)
 					return
