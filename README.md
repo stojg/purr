@@ -1,5 +1,7 @@
 # purr
 
+[![Travis](https://img.shields.io/travis/stojg/purr.svg)]()
+
 Slack notifier for open pull requests.
 
 ## Screenshot
