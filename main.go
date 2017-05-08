@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"context"
 )
 
 const (
@@ -111,7 +112,7 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 			continue
 		}
 		logrus.Debugf("expanding wildcard on %s", repoName)
-		allRepos, _, err := client.Repositories.List(repoParts[0], nil)
+		allRepos, _, err := client.Repositories.List(context.Background(), repoParts[0], nil)
 		if err != nil {
 			logrus.Error(err)
 			continue
@@ -150,7 +151,7 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 				}
 
 				// get the pull requests
-				pullRequests, resp, err := client.PullRequests.List(parts[0], parts[1], options)
+				pullRequests, resp, err := client.PullRequests.List(context.Background(), parts[0], parts[1], options)
 				if err != nil {
 					logrus.Errorf("While fetching PRs from GitHub (%s/%s): %s", parts[0], parts[1], err)
 					return
