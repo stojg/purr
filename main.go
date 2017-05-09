@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"github.com/Sirupsen/logrus"
@@ -14,7 +15,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"context"
 )
 
 const (
@@ -89,7 +89,7 @@ func main() {
 	if cliOutput {
 		fmt.Print(message)
 
-	// Otherwise send to slack
+		// Otherwise send to slack
 	} else {
 		postToSlack(conf, message)
 	}
