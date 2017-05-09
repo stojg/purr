@@ -6,5 +6,5 @@ go:
 
 script: 
 # No tests yet, so we'll do a trial build
- - go build .
+ - make ci
 

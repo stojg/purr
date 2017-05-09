@@ -5,16 +5,17 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/bluele/slack"
 	"github.com/dustin/go-humanize"
 	"github.com/google/go-github/github"
 	"github.com/xanzy/go-gitlab"
 	"golang.org/x/oauth2"
-	"os"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (
