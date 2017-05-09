@@ -13,7 +13,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/bluele/slack"
 	"github.com/dustin/go-humanize"
-	"github.com/google/go-github/github"
+	"github.com/sminnee/go-github/github"
 	"github.com/xanzy/go-gitlab"
 	"golang.org/x/oauth2"
 )
@@ -168,20 +168,31 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 
 				// transform the GitHub pull request struct into a provider agnostic struct
 				for _, pr := range pullRequests {
-					pullRequest := &PullRequest{
-						ID:         *pr.Number,
-						Author:     *pr.User.Login,
-						Updated:    *pr.UpdatedAt,
-						WebLink:    *pr.HTMLURL,
-						Title:      *pr.Title,
-						Repository: fmt.Sprintf("%s/%s", parts[0], parts[1]),
-					}
-					if pr.Assignee != nil {
-						pullRequest.Assignee = *pr.Assignee.Login
-					}
+					wg.Add(1)
 
-					// push to the outchannel
-					out <- pullRequest
+					// Get the github reviews and push result onto out when done
+					go func(pr *github.PullRequest) {
+						defer wg.Done()
+
+						hasChangesRequestedReview, hasApprovedReview := trawlGitHubReviews(client, parts[0], parts[1], *pr.Number)
+
+						pullRequest := &PullRequest{
+							ID:      *pr.Number,
+							Author:  *pr.User.Login,
+							Updated: *pr.UpdatedAt,
+							WebLink: *pr.HTMLURL,
+							Title:   *pr.Title,
+							HasChangesRequestedReview: hasChangesRequestedReview,
+							HasApprovedReview:         hasApprovedReview,
+							Repository:                fmt.Sprintf("%s/%s", parts[0], parts[1]),
+						}
+						if pr.Assignee != nil {
+							pullRequest.Assignee = *pr.Assignee.Login
+						}
+
+						// push to the outchannel
+						out <- pullRequest
+					}(pr)
 				}
 
 				// the GitHub API returns 0 as the LastPage if there are no more pages of result
@@ -202,6 +213,43 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 	}()
 
 	return out
+}
+
+// Trawl the reviews of a single PR and return a few flags: HasChangesRequestedReview, HasApprovedReview
+func trawlGitHubReviews(client *github.Client, owner string, repo string, number int) (bool, bool) {
+	hasChangesRequestedReview := false
+	hasApprovedReview := false
+
+	nextPage := 1
+	for {
+		options := &github.ListOptions{
+			Page: nextPage,
+		}
+
+		// get the reviews for the PR
+		pullRequestReviews, resp, err := client.PullRequests.ListReviews(context.Background(), owner, repo, number, options)
+		if err != nil {
+			logrus.Errorf("While fetching PR reviews from GitHub (%s/%s#%d): %s", owner, repo, number, err)
+			return false, false
+		}
+
+		for _, review := range pullRequestReviews {
+			if *review.State == "CHANGES_REQUESTED" {
+				hasChangesRequestedReview = true
+			}
+			if *review.State == "APPROVED" {
+				hasApprovedReview = true
+			}
+		}
+
+		// the GitHub API returns 0 as the LastPage if there are no more pages of result
+		if resp.LastPage == 0 {
+			break
+		}
+		nextPage++
+	}
+
+	return hasChangesRequestedReview, hasApprovedReview
 }
 
 func trawlGitLab(conf *Config) <-chan *PullRequest {
