@@ -1,6 +1,6 @@
 # purr
 
-[![Travis](https://img.shields.io/travis/stojg/purr.svg)]()
+[![Travis](https://img.shields.io/travis/stojg/purr.svg)](https://travis-ci.org/stojg/purr)
 
 Slack notifier for open pull requests.
 
