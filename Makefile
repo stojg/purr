@@ -1,13 +1,13 @@
 
 dev:
-	go fmt ./...
-	go vet ./...
-	go test ./...
+	go fmt .
+	go vet .
+	go test .
 
 install:
-	go fmt ./...
-	go vet ./...
-	go test ./...
+	go fmt .
+	go vet .
+	go test .
 	go install .
 
 lint:
@@ -17,7 +17,7 @@ lint:
 	go vet *.go
 
 ci: lint
-	go get 
+	go get
 	go test .
 
 build:

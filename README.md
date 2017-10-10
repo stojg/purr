@@ -40,7 +40,11 @@ If you are a gopher, you can install it via the usual:
 
 `go get -u github.com/stojg/purr`
 
-Compiled binaries are also available at https://github.com/stojg/purr/releases
+Compiled binaries are also available at [https://github.com/stojg/purr/releases](https://github.com/stojg/purr/releases)
+
+## development
+
+This project is using [glide](https://github.com/Masterminds/glide) for dependency management.
 
 ## configuration
 
