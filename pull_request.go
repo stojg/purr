@@ -23,7 +23,11 @@ type PullRequest struct {
 
 func (p *PullRequest) isWIP() bool {
 	// Check for WIP in the title
-	if strings.Contains(p.Title, "[WIP]") || strings.Contains(p.Title, "WIP:") {
+	if strings.Index(p.Title, "[WIP]") == 0 {
+		return true
+	}
+
+	if strings.Index(p.Title, "WIP") == 0 {
 		return true
 	}
 
@@ -54,7 +58,7 @@ func (p *PullRequest) String() string {
 	title = strings.Replace(title, "<", "&lt;", -1)
 	title = strings.Replace(title, ">", "&gt;", -1)
 
-	output := fmt.Sprintf(" • <%s|PR #%d> %s  - _%s_", p.WebLink, p.ID, title, p.Author)
+	output := fmt.Sprintf(" • <%s|PR #%d> %s - _%s_", p.WebLink, p.ID, title, p.Author)
 
 	if p.HasApprovedReview {
 		output += ", *APPROVED*"
