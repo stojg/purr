@@ -10,14 +10,16 @@ import (
 
 // Config contains the settings from the user
 type Config struct {
-	GitHubToken   string   `json:"github_token"`
-	GitHubRepos   []string `json:"github_repos"`
-	GitLabToken   string   `json:"gitlab_token"`
-	GitLabRepos   []string `json:"gitlab_repos"`
-	GitlabURL     string   `json:"gitlab_url"`
-	SlackToken    string   `json:"slack_token"`
-	SlackChannel  string   `json:"slack_channel"`
-	UserWhiteList []string `json:"user_whitelist"`
+	GitHubToken         string   `json:"github_token"`
+	GitHubOrganisations []string `json:"github_organisations"`
+	GitHubUsers         []string `json:"github_user"`
+	GitHubRepos         []string `json:"github_repos"`
+	GitLabToken         string   `json:"gitlab_token"`
+	GitLabRepos         []string `json:"gitlab_repos"`
+	GitlabURL           string   `json:"gitlab_url"`
+	SlackToken          string   `json:"slack_token"`
+	SlackChannel        string   `json:"slack_channel"`
+	UserWhiteList       []string `json:"user_whitelist"`
 }
 
 func newConfig(filePath string) (*Config, error) {
@@ -37,6 +39,12 @@ func newConfig(filePath string) (*Config, error) {
 
 	if os.Getenv("GITHUB_TOKEN") != "" {
 		c.GitHubToken = os.Getenv("GITHUB_TOKEN")
+	}
+	if os.Getenv("GITHUB_ORGANISATIONS") != "" {
+		c.GitHubOrganisations = strings.Split(os.Getenv("GITHUB_ORGANISATIONS"), ",")
+	}
+	if os.Getenv("GITHUB_USERS") != "" {
+		c.GitHubUsers = strings.Split(os.Getenv("GITHUB_USERS"), ",")
 	}
 	if os.Getenv("GITHUB_REPOS") != "" {
 		c.GitHubRepos = strings.Split(os.Getenv("GITHUB_REPOS"), ",")
@@ -67,9 +75,6 @@ func (c *Config) validate() []error {
 	if c.GitHubToken == "" {
 		errors = append(errors, fmt.Errorf("GitHub token cannot be empty"))
 	}
-	if len(c.GitHubRepos) == 0 {
-		errors = append(errors, fmt.Errorf("GitHub repos cannot be empty"))
-	}
 	if c.SlackToken == "" {
 		errors = append(errors, fmt.Errorf("Slack token cannot be empty"))
 	}
@@ -86,14 +91,16 @@ func configHelp() {
 	fmt.Fprintln(os.Stderr, "\nThe configuration file (--config) looks like this:")
 
 	exampleConfig := &Config{
-		GitHubToken:   "secret_token",
-		GitHubRepos:   []string{"user1/repo1", "user2/repo1"},
-		GitLabToken:   "secret_token",
-		GitLabRepos:   []string{"project1/repo1", "project2/repo1"},
-		GitlabURL:     "https://www.example.com",
-		SlackToken:    "secret_token",
-		SlackChannel:  "myteamchat",
-		UserWhiteList: []string{"user1", "user2"},
+		GitHubToken:         "secret_token",
+		GitHubOrganisations: []string{"facebook"},
+		GitHubUsers:         []string{"stojg"},
+		GitHubRepos:         []string{"user1/repo1", "user2/repo1"},
+		GitLabToken:         "secret_token",
+		GitLabRepos:         []string{"project1/repo1", "project2/repo1"},
+		GitlabURL:           "https://www.example.com",
+		SlackToken:          "secret_token",
+		SlackChannel:        "myteamchat",
+		UserWhiteList:       []string{"user1", "user2"},
 	}
 	b, err := json.MarshalIndent(exampleConfig, "", "  ")
 	if err != nil {
@@ -103,6 +110,8 @@ func configHelp() {
 
 	fmt.Fprint(os.Stderr, "The above configuration can be overridden with ENV variables:\n\n")
 	fmt.Fprintln(os.Stderr, " * GITHUB_TOKEN")
+	fmt.Fprintln(os.Stderr, " * GITHUB_ORGANISATIONS - comma separated list")
+	fmt.Fprintln(os.Stderr, " * GITHUB_USERS - comma separated list")
 	fmt.Fprintln(os.Stderr, " * GITHUB_REPOS - comma separated list")
 	fmt.Fprintln(os.Stderr, " * GITLAB_TOKEN")
 	fmt.Fprintln(os.Stderr, " * GITLAB_URL")

@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.6.0] - 2017-10-13
+
+### Changed
+
+- Configuration to get private and public repositories for Organisations
+- Configuration to get users public repositories
+
+### Removed
+
+- Configuration for getting repositories with wildcard syntax
+
+## [0.5.1] - 2017-10-11
+
+### Added
+- use of glide as a dependency manager to lock down the gitlab client to v3 of the gitlab API
+
+### Changed
+- escape &, > and < characters for slack
+- better Work-In-Progress (WIP) detection from the pull request titles
+
+## [0.5.0] - 2017-05-09
+
+### Changed
+- Exclude Github PR that are currently under review
+
 ## [0.4.0] - 2016-09-03
 
 ### Added

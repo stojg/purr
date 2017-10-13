@@ -108,27 +108,40 @@ func trawlGitHub(conf *Config) <-chan *PullRequest {
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 	client := github.NewClient(tc)
 
-	// check for wildcards in the repo name and expand them into individual repos
 	var repos []string
+
+	// check for a organisation and all it's repositories
+	for _, organisationName := range conf.GitHubOrganisations {
+		// first try listing by organisation
+		allRepos, _, err := client.Repositories.ListByOrg(context.Background(), organisationName, nil)
+		if err != nil {
+			logrus.Errorf("Failed getting repositories for organisation %s: %v", organisationName, err)
+			continue
+		}
+		for i := range allRepos {
+			repos = append(repos, *allRepos[i].FullName)
+		}
+	}
+
+	for _, user := range conf.GitHubUsers {
+		// first try listing by organisation
+		allRepos, _, err := client.Repositories.List(context.Background(), user, nil)
+		if err != nil {
+			logrus.Errorf("Failed getting repositories for organisation %s: %v", user, err)
+			continue
+		}
+		for i := range allRepos {
+			repos = append(repos, *allRepos[i].FullName)
+		}
+	}
+
 	for _, repoName := range conf.GitHubRepos {
 		repoParts := strings.Split(repoName, "/")
 		if len(repoParts) != 2 {
 			logrus.Errorf("%s is not a valid GitHub repository\n", repoName)
 			continue
 		}
-		if repoParts[1] != "*" {
-			repos = append(repos, repoName)
-			continue
-		}
-		logrus.Debugf("expanding wildcard on %s", repoName)
-		allRepos, _, err := client.Repositories.List(context.Background(), repoParts[0], nil)
-		if err != nil {
-			logrus.Error(err)
-			continue
-		}
-		for i := range allRepos {
-			repos = append(repos, fmt.Sprintf("%s/%s", repoParts[0], *allRepos[i].Name))
-		}
+		repos = append(repos, repoName)
 	}
 
 	// spin out each request to find PRs on a repo into a separate goroutine so we fetch them

@@ -59,6 +59,12 @@ Example JSON
 ```
 {
   "github_token": "secret_token",
+  "github_organisations": [
+    "facebook"
+  ],
+  "github_user": [
+    "stojg"
+  ],
   "github_repos": [
     "user1/repo1",
     "user2/repo1"
@@ -78,18 +84,15 @@ Example JSON
 }
 ```
 
-To get all repos for a github user / organisation, replace the repository name with a star:
-
-```
-"github_repos": [ "user1/*" ]
-
-```
-
+Note that `github_organisations` will get all public and private repos and that `github_user` will only get the public
+repos for a user due to how gitlab works.
 
 The ENV variables are
 
 ```
 export GITHUB_TOKEN="<super_secret_github token>"
+export GITHUB_ORGANISATIONS - "facebook,twitter"
+export GITHUB_USERS - "stojg,KentBeck"
 export GITHUB_REPOS="user_org/repo1,user_org/repo2" # comma separated
 export GITLAB_TOKEN="<super_secret_github token>"
 export GITLAB_URL="http://example.com"
@@ -98,8 +101,6 @@ export SLACK_TOKEN="<super_secret_slack_token>"
 export SLACK_CHANNEL="my_slack_room"
 export USER_WHITELIST="user1,user2"
 ```
-
-GitLab configuration is optional.
 
 ## run it
 
