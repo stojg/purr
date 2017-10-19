@@ -19,12 +19,14 @@ type Config struct {
 	GitlabURL           string   `json:"gitlab_url"`
 	SlackToken          string   `json:"slack_token"`
 	SlackChannel        string   `json:"slack_channel"`
-	UserWhiteList       []string `json:"user_whitelist"`
+	Filters             *Filters `json:"filters"`
 }
 
 func newConfig(filePath string) (*Config, error) {
 
-	c := &Config{}
+	c := &Config{
+		Filters: &Filters{},
+	}
 
 	if filePath != "" {
 		file, err := ioutil.ReadFile(filePath)
@@ -64,8 +66,8 @@ func newConfig(filePath string) (*Config, error) {
 	if os.Getenv("SLACK_CHANNEL") != "" {
 		c.SlackChannel = os.Getenv("SLACK_CHANNEL")
 	}
-	if os.Getenv("USER_WHITELIST") != "" {
-		c.UserWhiteList = strings.Split(os.Getenv("USER_WHITELIST"), ",")
+	if os.Getenv("FILTER_USERS") != "" {
+		c.Filters.SetUsers(strings.Split(os.Getenv("FILTER_USERS"), ","))
 	}
 	return c, nil
 }
@@ -100,8 +102,10 @@ func configHelp() {
 		GitlabURL:           "https://www.example.com",
 		SlackToken:          "secret_token",
 		SlackChannel:        "myteamchat",
-		UserWhiteList:       []string{"user1", "user2"},
+		Filters:             &Filters{},
 	}
+	exampleConfig.Filters.SetUsers([]string{"user1", "user2"})
+
 	b, err := json.MarshalIndent(exampleConfig, "", "  ")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s", err)
@@ -118,5 +122,5 @@ func configHelp() {
 	fmt.Fprintln(os.Stderr, " * GITLAB_REPOS - comma separated list")
 	fmt.Fprintln(os.Stderr, " * SLACK_TOKEN")
 	fmt.Fprintln(os.Stderr, " * SLACK_CHANNEL")
-	fmt.Fprintln(os.Stderr, " * USER_WHITELIST - comma separated list")
+	fmt.Fprintln(os.Stderr, " * FILTER_USERS - comma separated list")
 }

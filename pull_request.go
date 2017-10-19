@@ -39,18 +39,6 @@ func (p *PullRequest) isWIP() bool {
 	return false
 }
 
-func (p *PullRequest) isWhiteListed(config *Config) bool {
-	if len(config.UserWhiteList) == 0 {
-		return true
-	}
-	for _, user := range config.UserWhiteList {
-		if user == p.Author || user == p.Assignee {
-			return true
-		}
-	}
-	return false
-}
-
 func (p *PullRequest) String() string {
 
 	// the following chars will to be escaped for slack

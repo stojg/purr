@@ -28,30 +28,6 @@ func TestPullRequest_isWIP(t *testing.T) {
 	}
 }
 
-func TestPullRequest_isWhiteListed(t *testing.T) {
-
-	tests := []struct {
-		pr        *PullRequest
-		whitelist []string
-		expected  bool
-	}{
-		{pr: &PullRequest{Author: "john"}, whitelist: []string{}, expected: true},
-		{pr: &PullRequest{Author: "john"}, whitelist: []string{"jane", "john"}, expected: true},
-		{pr: &PullRequest{Author: "john"}, whitelist: []string{"jane"}, expected: false},
-		{pr: &PullRequest{Assignee: "john"}, whitelist: []string{"jane", "john"}, expected: true},
-		{pr: &PullRequest{Assignee: "john"}, whitelist: []string{"jane"}, expected: false},
-	}
-	for _, test := range tests {
-		config := &Config{
-			UserWhiteList: test.whitelist,
-		}
-		actual := test.pr.isWhiteListed(config)
-		if actual != test.expected {
-			t.Errorf("Expected '%t', got '%t'", test.expected, actual)
-		}
-	}
-}
-
 func TestPullRequest_String(t *testing.T) {
 	tests := []struct {
 		pr       *PullRequest

@@ -75,7 +75,7 @@ func main() {
 	prs := merge(gitHubPRs, gitLabPRs)
 
 	// filter out pull requests that we don't want to send
-	filteredPRs := filter(conf, prs)
+	filteredPRs := filter(conf.Filters, prs)
 
 	// format takes a channel of pull requests and returns a message that groups
 	// pull request into repos and formats them into a slack friendly format
@@ -348,15 +348,15 @@ func merge(channels ...<-chan *PullRequest) <-chan *PullRequest {
 
 // filter removes pull requests that should not show up in the final message, this could
 // include PRs marked as Work in Progress or where users are not in the whitelist
-func filter(conf *Config, in <-chan *PullRequest) chan *PullRequest {
+func filter(filters *Filters, in <-chan *PullRequest) chan *PullRequest {
 	out := make(chan *PullRequest)
 
 	go func() {
-		for list := range in {
-			if !list.isWIP() && list.isWhiteListed(conf) {
-				out <- list
+		for pr := range in {
+			if pr.isWIP() || filters.Filter(pr) {
+				logrus.Debugf("filtered pr '%s'", pr.Title)
 			} else {
-				logrus.Debugf("filtered pr '%s'", list.Title)
+				out <- pr
 			}
 		}
 		close(out)
