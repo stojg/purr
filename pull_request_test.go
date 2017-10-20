@@ -19,6 +19,7 @@ func TestPullRequest_isWIP(t *testing.T) {
 		{pr: &PullRequest{Title: "WIP fixes bug"}, expected: true},
 		{pr: &PullRequest{Title: "WIP: fixes bug"}, expected: true},
 		{pr: &PullRequest{Title: "[WIP] fixes bug"}, expected: true},
+		{pr: &PullRequest{Title: "Title", HasChangesRequestedReview: true}, expected: true},
 	}
 	for _, test := range tests {
 		if test.pr.isWIP() != test.expected {
