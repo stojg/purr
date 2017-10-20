@@ -12,7 +12,7 @@ import (
 type Config struct {
 	GitHubToken         string   `json:"github_token"`
 	GitHubOrganisations []string `json:"github_organisations"`
-	GitHubUsers         []string `json:"github_user"`
+	GitHubUsers         []string `json:"github_users"`
 	GitHubRepos         []string `json:"github_repos"`
 	GitLabToken         string   `json:"gitlab_token"`
 	GitLabRepos         []string `json:"gitlab_repos"`

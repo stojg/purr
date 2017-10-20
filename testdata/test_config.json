@@ -1,0 +1,15 @@
+{
+    "github_token": "super_secret",
+    "github_organisations": [
+        "twitter"
+    ],
+    "github_users": [
+        "stojg"
+    ],
+    "github_repos": [
+        "facebook/emitter",
+        "facebook/buck"
+    ],
+    "slack_token": "secret",
+    "slack_channel": "ci"
+}
