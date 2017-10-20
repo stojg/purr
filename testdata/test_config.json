@@ -1,15 +1,25 @@
 {
-    "github_token": "super_secret",
+    "github_token": "secret_github_token",
     "github_organisations": [
-        "twitter"
+        "facebook"
     ],
     "github_users": [
         "stojg"
     ],
     "github_repos": [
-        "facebook/emitter",
-        "facebook/buck"
+        "user1/repo1",
+        "user2/repo1"
     ],
-    "slack_token": "secret",
-    "slack_channel": "ci"
+    "gitlab_token": "secret_gitlab_token",
+    "gitlab_repos": [
+        "project1/repo1",
+        "project2/repo1"
+    ],
+    "gitlab_url": "https://www.example.com",
+    "slack_token": "secret_slack_token",
+    "slack_channel": "myteamchat",
+    "user_whitelist": [
+        "user1",
+        "user2"
+    ]
 }
