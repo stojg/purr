@@ -102,9 +102,8 @@ func configHelp() {
 		GitlabURL:           "https://www.example.com",
 		SlackToken:          "secret_token",
 		SlackChannel:        "myteamchat",
-		Filters:             &Filters{},
+		Filters:             &Filters{Users: []string{"user1", "user2"}},
 	}
-	exampleConfig.Filters.SetUsers([]string{"user1", "user2"})
 
 	b, err := json.MarshalIndent(exampleConfig, "", "  ")
 	if err != nil {

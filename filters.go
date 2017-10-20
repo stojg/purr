@@ -1,14 +1,14 @@
 package main
 
 type Filters struct {
-	users []string
+	Users []string `json:"users"`
 }
 
 func (f *Filters) Filter(p *PullRequest) bool {
-	if len(f.users) == 0 {
+	if len(f.Users) == 0 {
 		return false
 	}
-	for _, user := range f.users {
+	for _, user := range f.Users {
 		if user == p.Author || user == p.Assignee {
 			return false
 		}
@@ -17,5 +17,5 @@ func (f *Filters) Filter(p *PullRequest) bool {
 }
 
 func (f *Filters) SetUsers(values []string) {
-	f.users = values
+	f.Users = values
 }
