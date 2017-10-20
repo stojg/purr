@@ -13,7 +13,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/bluele/slack"
 	"github.com/dustin/go-humanize"
-	"github.com/sminnee/go-github/github"
+	"github.com/google/go-github/github"
 	"github.com/xanzy/go-gitlab"
 	"golang.org/x/oauth2"
 )
