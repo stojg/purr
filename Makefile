@@ -18,7 +18,7 @@ lint:
 test: test-all
 
 test-all:
-	@go test -v -race $(GOPACKAGES)
+	@go test -v -race -cover -coverprofile=./coverage.out $(GOPACKAGES)
 
 build:
 	GOOS=darwin GOARCH=amd64 go build -o purr_darwin_amd64 .

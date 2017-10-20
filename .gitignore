@@ -1,3 +1,4 @@
-.env
-*.json
-purr
+/.env
+/*.json
+/purr
+/coverage.out

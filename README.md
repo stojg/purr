@@ -4,6 +4,9 @@
 
 Slack notifier for open pull requests.
 
+[![CircleCI](https://circleci.com/gh/stojg/purr.svg?style=svg)](https://circleci.com/gh/stojg/purr)
+[![Coverage Status](https://coveralls.io/repos/github/stojg/purr/badge.svg)](https://coveralls.io/github/stojg/purr)
+
 ## Screenshot
 
 ![example.png](./_docs/example.png)

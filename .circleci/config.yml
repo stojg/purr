@@ -13,11 +13,20 @@ jobs:
       - checkout
       - run: mkdir -p $TEST_RESULTS
       - run: go get github.com/jstemmer/go-junit-report
+      - run: go get github.com/mattn/goveralls
       - run:
           name: Run unit tests
           command: |
             trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
             make test | tee ${TEST_RESULTS}/go-test.out
+      - run:
+          name: coveralls.io
+          command: |
+            if [ -z ${COVERALLS_TOKEN} ]; then
+              echo "coveralls token isn't set, skipping"
+            else
+              goveralls -coverprofile=./coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+            fi
       - store_artifacts:
           path: /tmp/test-results
           destination: raw-test-output
