@@ -67,7 +67,7 @@ func newConfig(filePath string) (*Config, error) {
 		c.SlackChannel = os.Getenv("SLACK_CHANNEL")
 	}
 	if os.Getenv("FILTER_USERS") != "" {
-		c.Filters.SetUsers(strings.Split(os.Getenv("FILTER_USERS"), ","))
+		c.Filters.Users = strings.Split(os.Getenv("FILTER_USERS"), ",")
 	}
 	return c, nil
 }
@@ -102,9 +102,8 @@ func configHelp() {
 		GitlabURL:           "https://www.example.com",
 		SlackToken:          "secret_token",
 		SlackChannel:        "myteamchat",
-		Filters:             &Filters{},
+		Filters:             &Filters{Users: []string{"user1", "user2"}},
 	}
-	exampleConfig.Filters.SetUsers([]string{"user1", "user2"})
 
 	b, err := json.MarshalIndent(exampleConfig, "", "  ")
 	if err != nil {

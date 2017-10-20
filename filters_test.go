@@ -2,25 +2,26 @@ package main
 
 import "testing"
 
-func TestFilters_Filter(t *testing.T) {
+func TestFilters_FilterUsers(t *testing.T) {
 
 	tests := []struct {
-		pr        *PullRequest
-		whitelist []string
-		expected  bool
+		pr       *PullRequest
+		users    []string
+		expected bool
 	}{
-		{pr: &PullRequest{Author: "john"}, whitelist: []string{}, expected: false},
-		{pr: &PullRequest{Author: "john"}, whitelist: []string{"jane", "john"}, expected: false},
-		{pr: &PullRequest{Author: "john"}, whitelist: []string{"jane"}, expected: true},
-		{pr: &PullRequest{Assignee: "john"}, whitelist: []string{"jane", "john"}, expected: false},
-		{pr: &PullRequest{Assignee: "john"}, whitelist: []string{"jane"}, expected: true},
+		{pr: &PullRequest{Author: "john"}, users: []string{}, expected: false},
+		{pr: &PullRequest{Author: "john"}, users: []string{"jane", "john"}, expected: false},
+		{pr: &PullRequest{Author: "john"}, users: []string{"jane"}, expected: true},
+		{pr: &PullRequest{Assignee: "john"}, users: []string{"jane", "john"}, expected: false},
+		{pr: &PullRequest{Assignee: "john"}, users: []string{"jane"}, expected: true},
 	}
 	for _, test := range tests {
-		filters := &Filters{}
-		filters.SetUsers(test.whitelist)
+		filters := &Filters{
+			Users: test.users,
+		}
 		actual := filters.Filter(test.pr)
 		if actual != test.expected {
-			t.Errorf("Expected isWhitelisted '%t', got '%t', whitelist %s, author: '%s' and assignee '%s'", test.expected, actual, test.whitelist, test.pr.Author, test.pr.Assignee)
+			t.Errorf("Expected Filter '%t', got '%t', users %s", test.expected, actual, test.users)
 		}
 	}
 }

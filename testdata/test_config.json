@@ -21,5 +21,12 @@
     "user_whitelist": [
         "user1",
         "user2"
-    ]
+    ],
+
+    "filters": {
+        "Users": [
+            "Jane",
+            "John"
+        ]
+    }
 }

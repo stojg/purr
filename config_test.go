@@ -83,4 +83,9 @@ func TestNewConfig(t *testing.T) {
 		return
 	}
 
+	if len(config.Filters.Users) != 2 {
+		t.Errorf("Expected 2 filtered user, got got '%d'", len(config.Filters.Users))
+		return
+	}
+
 }
