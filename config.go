@@ -74,9 +74,6 @@ func newConfig(filePath string) (*Config, error) {
 
 func (c *Config) validate() []error {
 	var errors []error
-	if c.GitHubToken == "" {
-		errors = append(errors, fmt.Errorf("GitHub token cannot be empty"))
-	}
 	if c.SlackToken == "" {
 		errors = append(errors, fmt.Errorf("Slack token cannot be empty"))
 	}
