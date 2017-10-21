@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- Configuration format for whitelisting users has been changed to make it easier to 
+  add further global filters  
+
 ## [0.6.0] - 2017-10-13
 
 ### Changed

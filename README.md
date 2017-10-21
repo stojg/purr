@@ -24,7 +24,7 @@ pull requests that are waiting for review.
 - List open pull requests from GitHub
 - Can be configured via a JSON file and environment variables
 - Use `user_or_organisation/*` in the repo configuration to get PRs for all repositories for that user or organisation
-- Can ignore PRs if the author or assignee is not in a whitelist
+- Can ignore PRs if the author or assignee is not in a user filter
 - Ignores pull requests that contains `[WIP]` or `WIP:` in the title
 - Triggered via cron job or manually
 
@@ -63,7 +63,7 @@ Example JSON
   "github_organisations": [
     "facebook"
   ],
-  "github_user": [
+  "github_users": [
     "stojg"
   ],
   "github_repos": [
@@ -78,10 +78,12 @@ Example JSON
   "gitlab_url": "https://www.example.com",
   "slack_token": "secret_token",
   "slack_channel": "myteamchat",
-  "user_whitelist": [
-    "user1",
-    "user2"
-  ]
+  "filters": {
+    "users": [
+      "user1",
+      "user2"
+    ]
+  }
 }
 ```
 
@@ -100,7 +102,7 @@ export GITLAB_URL="http://example.com"
 export GITLAB_REPOS="project1/repo1,project2/repo1"
 export SLACK_TOKEN="<super_secret_slack_token>"
 export SLACK_CHANNEL="my_slack_room"
-export USER_WHITELIST="user1,user2"
+export FILTER_USERS="user1,user2"
 ```
 
 ## run it
