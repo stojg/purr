@@ -25,6 +25,7 @@ type Config struct {
 func newConfig(filePath string) (*Config, error) {
 
 	c := &Config{
+		// default filters if not set in configuration
 		Filters: &Filters{
 			WorkInProgress:  true,
 			RequiresChanges: true,
@@ -72,6 +73,12 @@ func newConfig(filePath string) (*Config, error) {
 	if os.Getenv("FILTER_USERS") != "" {
 		c.Filters.Users = strings.Split(os.Getenv("FILTER_USERS"), ",")
 	}
+	if os.Getenv("FILTER_WIP") != "" {
+		c.Filters.WorkInProgress = os.Getenv("FILTER_WIP") == "true"
+	}
+	if os.Getenv("FILTER_REVIEW") != "" {
+		c.Filters.RequiresChanges = os.Getenv("FILTER_REVIEW") == "true"
+	}
 	return c, nil
 }
 
@@ -102,7 +109,11 @@ func configHelp() {
 		GitlabURL:           "https://www.example.com",
 		SlackToken:          "secret_token",
 		SlackChannel:        "myteamchat",
-		Filters:             &Filters{Users: []string{"user1", "user2"}},
+		Filters: &Filters{
+			Users:           []string{"user1", "user2"},
+			RequiresChanges: true,
+			WorkInProgress:  true,
+		},
 	}
 
 	b, err := json.MarshalIndent(exampleConfig, "", "  ")
@@ -122,4 +133,6 @@ func configHelp() {
 	fmt.Fprintln(os.Stderr, " * SLACK_TOKEN")
 	fmt.Fprintln(os.Stderr, " * SLACK_CHANNEL")
 	fmt.Fprintln(os.Stderr, " * FILTER_USERS - comma separated list")
+	fmt.Fprintln(os.Stderr, " * FILTER_WIP - 'true' or 'false'")
+	fmt.Fprintln(os.Stderr, " * FILTER_REVIEW - 'true' or 'false'")
 }

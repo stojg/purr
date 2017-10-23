@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - Configuration format for whitelisting users has been changed to make it easier to 
   add further global filters  
+- enable and disable filters via the config
 
 ## [0.6.0] - 2017-10-13
 

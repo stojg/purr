@@ -88,4 +88,42 @@ func TestNewConfig(t *testing.T) {
 		return
 	}
 
+	if !config.Filters.RequiresChanges {
+		t.Errorf("Didnt expected filter 'review' to be disabled")
+	}
+
+	if !config.Filters.WorkInProgress {
+		t.Errorf("Didnt expected filter 'wip' to be enabled")
+	}
+
+}
+
+func TestNewConfig_NoFilters(t *testing.T) {
+	config, err := newConfig("testdata/test_config_no_filters.json")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	validationErrors := config.validate()
+	if len(validationErrors) != 0 {
+		for _, err := range validationErrors {
+			t.Errorf("Did not expect validation error: %+v", err)
+		}
+		return
+	}
+
+	if len(config.Filters.Users) != 0 {
+		t.Errorf("Expected 0 filtered users, got got '%d'", len(config.Filters.Users))
+		return
+	}
+
+	if config.Filters.RequiresChanges {
+		t.Errorf("Didnt expected filter 'review' to be enabled")
+	}
+
+	if config.Filters.WorkInProgress {
+		t.Errorf("Didnt expected filter 'wip' to be enabled")
+	}
+
 }
