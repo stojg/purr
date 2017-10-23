@@ -25,7 +25,10 @@ type Config struct {
 func newConfig(filePath string) (*Config, error) {
 
 	c := &Config{
-		Filters: &Filters{},
+		Filters: &Filters{
+			WorkInProgress:  true,
+			RequiresChanges: true,
+		},
 	}
 
 	if filePath != "" {

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -10,12 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/bluele/slack"
 	"github.com/dustin/go-humanize"
-	"github.com/sminnee/go-github/github"
-	"github.com/xanzy/go-gitlab"
-	"golang.org/x/oauth2"
 )
 
 const (
@@ -42,14 +37,11 @@ func init() {
 		configHelp()
 	}
 	flag.Parse()
-
-	// set log level
-	if debug {
-		logrus.SetLevel(logrus.DebugLevel)
-	}
 }
 
 func main() {
+
+	logger := NewStdOutLogger(debug)
 
 	conf, err := newConfig(configFile)
 
@@ -68,295 +60,69 @@ func main() {
 
 	// these function will return channels that will emit a list of pull requests
 	// on channels and close the channel when they are done
-	gitHubPRs := trawlGitHub(conf)
-	gitLabPRs := trawlGitLab(conf)
+	gitHubPRs := trawlGitHub(conf, logger)
+	gitLabPRs := trawlGitLab(conf, logger)
 
 	// Merge the in channels into of channel and close it when the inputs are done
 	prs := merge(gitHubPRs, gitLabPRs)
 
 	// filter out pull requests that we don't want to send
-	filteredPRs := filter(conf.Filters, prs)
+	filteredPRs := filter(conf.Filters, prs, logger)
 
 	// format takes a channel of pull requests and returns a message that groups
 	// pull request into repos and formats them into a slack friendly format
 	message := format(filteredPRs)
 
-	// Output what slack will send if we are in debug mode
-	if debug {
-		logrus.Debugf("Final message:\n%s", message)
-	}
-
-	// If -o is set, just output
-	if cliOutput {
+	if message.String() == "" {
+		logger.Debugf("No PRs found\n")
+	} else if cliOutput {
 		fmt.Print(message)
-
-		// Otherwise send to slack
 	} else {
-		postToSlack(conf, message)
-	}
-}
-
-func trawlGitHub(conf *Config) <-chan *PullRequest {
-
-	out := make(chan *PullRequest)
-
-	// create a sync group that is used to close the out channel when all github repos has been
-	// trawled
-	var wg sync.WaitGroup
-
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: conf.GitHubToken})
-	tc := oauth2.NewClient(oauth2.NoContext, ts)
-	client := github.NewClient(tc)
-
-	var repos []string
-
-	// check for a organisation and all it's repositories
-	for _, organisationName := range conf.GitHubOrganisations {
-		// first try listing by organisation
-		allRepos, _, err := client.Repositories.ListByOrg(context.Background(), organisationName, nil)
+		err := postToSlack(conf, message)
 		if err != nil {
-			logrus.Errorf("Failed getting repositories for organisation %s: %v", organisationName, err)
-			continue
-		}
-		for i := range allRepos {
-			repos = append(repos, *allRepos[i].FullName)
+			fmt.Fprintf(os.Stderr, "Could not send to slack: %v\n", err)
+			os.Exit(1)
 		}
 	}
-
-	for _, user := range conf.GitHubUsers {
-		// first try listing by organisation
-		allRepos, _, err := client.Repositories.List(context.Background(), user, nil)
-		if err != nil {
-			logrus.Errorf("Failed getting repositories for organisation %s: %v", user, err)
-			continue
-		}
-		for i := range allRepos {
-			repos = append(repos, *allRepos[i].FullName)
-		}
-	}
-
-	for _, repoName := range conf.GitHubRepos {
-		repoParts := strings.Split(repoName, "/")
-		if len(repoParts) != 2 {
-			logrus.Errorf("%s is not a valid GitHub repository\n", repoName)
-			continue
-		}
-		repos = append(repos, repoName)
-	}
-
-	// spin out each request to find PRs on a repo into a separate goroutine so we fetch them
-	// asynchronous
-	for _, repo := range repos {
-
-		// increment the wait group
-		wg.Add(1)
-
-		go func(repoName string) {
-			// when finished, decrement the wait group
-			defer wg.Done()
-			logrus.Debugf("Starting fetch from %s", repoName)
-
-			parts := strings.Split(repoName, "/")
-
-			// nextPage keeps track of of the current page of the paginataed response from the
-			// GitHub API
-			nextPage := 1
-			for {
-				// options for the request for PRs
-				options := &github.PullRequestListOptions{
-					State:     "open",
-					Sort:      "updated",
-					Direction: "desc",
-					ListOptions: github.ListOptions{
-						Page: nextPage,
-					},
-				}
-
-				// get the pull requests
-				pullRequests, resp, err := client.PullRequests.List(context.Background(), parts[0], parts[1], options)
-				if err != nil {
-					logrus.Errorf("While fetching PRs from GitHub (%s/%s): %s", parts[0], parts[1], err)
-					return
-				}
-
-				// transform the GitHub pull request struct into a provider agnostic struct
-				for _, pr := range pullRequests {
-					wg.Add(1)
-
-					// Get the github reviews and push result onto out when done
-					go func(pr *github.PullRequest) {
-						defer wg.Done()
-
-						hasChangesRequestedReview, hasApprovedReview := trawlGitHubReviews(client, parts[0], parts[1], *pr.Number)
-
-						pullRequest := &PullRequest{
-							ID:      *pr.Number,
-							Author:  *pr.User.Login,
-							Updated: *pr.UpdatedAt,
-							WebLink: *pr.HTMLURL,
-							Title:   *pr.Title,
-							HasChangesRequestedReview: hasChangesRequestedReview,
-							HasApprovedReview:         hasApprovedReview,
-							Repository:                fmt.Sprintf("%s/%s", parts[0], parts[1]),
-						}
-						if pr.Assignee != nil {
-							pullRequest.Assignee = *pr.Assignee.Login
-						}
-
-						// push to the outchannel
-						out <- pullRequest
-					}(pr)
-				}
-
-				// the GitHub API returns 0 as the LastPage if there are no more pages of result
-				if resp.LastPage == 0 {
-					break
-				}
-				nextPage++
-
-			}
-		}(repo)
-	}
-
-	// Spin off a go routine that will close the channel when all repos have finished
-	go func() {
-		wg.Wait()
-		logrus.Debugf("Done with github")
-		close(out)
-	}()
-
-	return out
-}
-
-// Trawl the reviews of a single PR and return a few flags: HasChangesRequestedReview, HasApprovedReview
-func trawlGitHubReviews(client *github.Client, owner string, repo string, number int) (bool, bool) {
-	hasChangesRequestedReview := false
-	hasApprovedReview := false
-
-	nextPage := 1
-	for {
-		options := &github.ListOptions{
-			Page: nextPage,
-		}
-
-		// get the reviews for the PR
-		pullRequestReviews, resp, err := client.PullRequests.ListReviews(context.Background(), owner, repo, number, options)
-		if err != nil {
-			logrus.Errorf("While fetching PR reviews from GitHub (%s/%s#%d): %s", owner, repo, number, err)
-			return false, false
-		}
-
-		for _, review := range pullRequestReviews {
-			if *review.State == "CHANGES_REQUESTED" {
-				hasChangesRequestedReview = true
-			}
-			if *review.State == "APPROVED" {
-				hasApprovedReview = true
-			}
-		}
-
-		// the GitHub API returns 0 as the LastPage if there are no more pages of result
-		if resp.LastPage == 0 {
-			break
-		}
-		nextPage++
-	}
-
-	return hasChangesRequestedReview, hasApprovedReview
-}
-
-func trawlGitLab(conf *Config) <-chan *PullRequest {
-	out := make(chan *PullRequest)
-
-	// create a sync group that is used to close the out channel when all gitlab repos has been
-	// trawled
-	var wg sync.WaitGroup
-
-	client := gitlab.NewClient(nil, conf.GitLabToken)
-	if err := client.SetBaseURL(conf.GitlabURL + "/api/v3"); err != nil {
-		usageAndExit(err.Error(), 1)
-	}
-
-	status := "opened"
-	options := &gitlab.ListMergeRequestsOptions{State: &status}
-
-	// spin out each request to find PR on a repo into a separate goroutine
-	for _, repo := range conf.GitLabRepos {
-
-		// increment
-		wg.Add(1)
-
-		go func(repoName string) {
-			defer wg.Done()
-
-			pullRequests, _, err := client.MergeRequests.ListMergeRequests(repoName, options)
-			if err != nil {
-				logrus.Errorf("While fetching PRs from GitLab (%s): %s", repoName, err)
-				return
-			}
-			for _, pr := range pullRequests {
-				out <- &PullRequest{
-					ID:         pr.IID,
-					Author:     pr.Author.Username,
-					Assignee:   pr.Assignee.Username,
-					Updated:    *pr.UpdatedAt,
-					WebLink:    fmt.Sprintf("%s/%s/merge_requests/%d", conf.GitlabURL, repoName, pr.IID),
-					Title:      pr.Title,
-					Repository: repoName,
-				}
-			}
-		}(repo)
-	}
-
-	go func() {
-		wg.Wait()
-		logrus.Debugf("Done with gitlab")
-		close(out)
-	}()
-
-	return out
 }
 
 // merge merges several channels into one output channel (fan-in)
 func merge(channels ...<-chan *PullRequest) <-chan *PullRequest {
-	var wg sync.WaitGroup
 	out := make(chan *PullRequest)
 
-	// Start an output goroutine for each input channel in channels. output copies values from prs
-	// to out until prs is closed, then calls wg.Done
-	output := func(prs <-chan *PullRequest) {
-		for pr := range prs {
-			out <- pr
-		}
-		wg.Done()
-	}
-
+	var wg sync.WaitGroup
 	wg.Add(len(channels))
 
+	// merges all in channels into an out channel
 	for _, c := range channels {
-		go output(c)
+		go func(prs <-chan *PullRequest) {
+			for pr := range prs {
+				out <- pr
+			}
+			wg.Done()
+		}(c)
 	}
 
-	// Start a goroutine to close out once all the output goroutines are done. This must start after
-	// the wg.Add call
+	// we have to wait until all input channels are closed before closing the out channel
 	go func() {
 		wg.Wait()
 		close(out)
 	}()
+
 	return out
 }
 
 // filter removes pull requests that should not show up in the final message, this could
 // include PRs marked as Work in Progress or where users are not in the whitelist
-func filter(filters *Filters, in <-chan *PullRequest) chan *PullRequest {
+func filter(filters *Filters, in <-chan *PullRequest, log Logger) chan *PullRequest {
 	out := make(chan *PullRequest)
 
 	go func() {
 		for pr := range in {
-			if pr.isWIP() || filters.Filter(pr) {
-				logrus.Debugf("filtered pr '%s'", pr.Title)
-			} else {
+			if filters.Filter(pr) {
 				out <- pr
+			} else {
+				log.Debugf("filtered PR '%s' (%s) \n", pr.Title, pr.WebLink)
 			}
 		}
 		close(out)
@@ -366,24 +132,30 @@ func filter(filters *Filters, in <-chan *PullRequest) chan *PullRequest {
 
 // format converts all pull requests into a message that is grouped by repo formatted for slack
 func format(prs <-chan *PullRequest) fmt.Stringer {
-	grouped := make(map[string][]*PullRequest)
-	numPRs := 0
+	var numPRs int
 	var oldest *PullRequest
+	repositories := make(map[string][]*PullRequest)
 	lastUpdated := time.Now()
+
+	// loop through all PRs, will stop when the channel is closed
 	for pr := range prs {
+		// update the oldest pull request
 		if pr.Updated.Before(lastUpdated) {
 			oldest = pr
 			lastUpdated = pr.Updated
 		}
+		// update the total count of PRs
 		numPRs++
-		if _, ok := grouped[pr.Repository]; !ok {
-			grouped[pr.Repository] = make([]*PullRequest, 0)
+		// group PRs with their repository
+		if _, ok := repositories[pr.Repository]; !ok {
+			repositories[pr.Repository] = make([]*PullRequest, 0)
 		}
-		grouped[pr.Repository] = append(grouped[pr.Repository], pr)
+		repositories[pr.Repository] = append(repositories[pr.Repository], pr)
 	}
 
+	// create the slack message in "slack" format
 	buf := &bytes.Buffer{}
-	for repo, prs := range grouped {
+	for repo, prs := range repositories {
 		fmt.Fprintf(buf, "*%s*\n", repo)
 		for i := range prs {
 			fmt.Fprintf(buf, "%s\n", prs[i])
@@ -391,6 +163,7 @@ func format(prs <-chan *PullRequest) fmt.Stringer {
 		fmt.Fprint(buf, "\n")
 	}
 
+	// summary
 	if numPRs > 0 {
 		fmt.Fprintf(buf, "\nThere are currently %d open pull requests", numPRs)
 		fmt.Fprintf(buf, " and the oldest (<%s|PR #%d>) was updated %s\n", oldest.WebLink, oldest.ID, humanize.Time(oldest.Updated))
@@ -400,13 +173,9 @@ func format(prs <-chan *PullRequest) fmt.Stringer {
 
 // postToSlack will post the message to Slack. It will divide the message into smaller message if
 // it's more than 30 lines long due to a max message size limitation enforced by the Slack API
-func postToSlack(conf *Config, message fmt.Stringer) {
+func postToSlack(conf *Config, message fmt.Stringer) error {
 
 	const maxLines = 30
-
-	if message.String() == "" {
-		return
-	}
 
 	client := slack.New(conf.SlackToken)
 	opt := &slack.ChatPostMessageOpt{
@@ -415,7 +184,7 @@ func postToSlack(conf *Config, message fmt.Stringer) {
 		IconEmoji: ":purr:",
 	}
 
-	// Don't send to large messages, send a new message per 40 new lines
+	// Don't send too large messages, send a new message per maxLines new lines
 	lines := strings.Split(message.String(), "\n")
 	lineBuffer := make([]string, maxLines)
 	for i := range lines {
@@ -424,13 +193,13 @@ func postToSlack(conf *Config, message fmt.Stringer) {
 			msg := strings.Join(lineBuffer, "\n")
 			if msg != "" {
 				if err := client.ChatPostMessage(conf.SlackChannel, msg, opt); err != nil {
-					logrus.Errorf("Slack: %s", err)
-					os.Exit(1)
+					return err
 				}
 			}
 			lineBuffer = make([]string, cap(lineBuffer))
 		}
 	}
+	return nil
 }
 
 func usageAndExit(message string, exitCode int) {

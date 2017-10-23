@@ -10,33 +10,15 @@ import (
 
 // PullRequest is a normalised version of PullRequest for the different providers
 type PullRequest struct {
-	ID                        int
-	Author                    string
-	Assignee                  string
-	Updated                   time.Time
-	WebLink                   string
-	Title                     string
-	Repository                string
-	HasChangesRequestedReview bool
-	HasApprovedReview         bool
-}
-
-func (p *PullRequest) isWIP() bool {
-	// Check for WIP in the title
-	if strings.Index(p.Title, "[WIP]") == 0 {
-		return true
-	}
-
-	if strings.Index(p.Title, "WIP") == 0 {
-		return true
-	}
-
-	// Check for a Review marked as requested changes
-	if p.HasChangesRequestedReview {
-		return true
-	}
-
-	return false
+	ID              int
+	Author          string
+	Assignee        string
+	Updated         time.Time
+	WebLink         string
+	Title           string
+	Repository      string
+	RequiresChanges bool
+	Approved        bool
 }
 
 func (p *PullRequest) String() string {
@@ -46,9 +28,9 @@ func (p *PullRequest) String() string {
 	title = strings.Replace(title, "<", "&lt;", -1)
 	title = strings.Replace(title, ">", "&gt;", -1)
 
-	output := fmt.Sprintf(" • <%s|PR #%d> %s - _%s_", p.WebLink, p.ID, title, p.Author)
+	output := fmt.Sprintf(" • <%s|#%d> %s - _%s_", p.WebLink, p.ID, title, p.Author)
 
-	if p.HasApprovedReview {
+	if p.Approved {
 		output += ", *APPROVED*"
 	}
 
