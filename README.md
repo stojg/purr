@@ -14,26 +14,21 @@ Slack notifier for open pull requests.
 Pull requests are a good way of getting feedback from your team members. But pull requests can
 easily get lost in the noise of daily communication and emails.
 
-Slack can be quite easily be hooked up with GitHub to send notices when new PR are opened, but they
+Slack can be quite easily be hooked up with GitHub/Gitlab to send notices when new pull requests are opened, but they
 can be annoying. Purr can be configured to send a daily reminder, maybe in the morning with all the
 pull requests that are waiting for review.
 
 ## features
 
+- Get pull requests from Github
+- Get merge requests from Gitlab
 - Sends the summary to a slack channel
-- List open pull requests from GitHub
 - Can be configured via a JSON file and environment variables
-- Use `user_or_organisation/*` in the repo configuration to get PRs for all repositories for that user or organisation
-- Can ignore PRs if the author or assignee is not in a user filter
-- Ignores pull requests that contains `[WIP]` or `WIP:` in the title
+- Get all repositories for an Gitlab organisation
 - Triggered via cron job or manually
+- user configured filters
 
-The slack message will be send by a user with the name `purr` and use the slack icon is the emoticon
-`:purr:`.
-
-### Experimental features
-
-- GitLab integration
+The slack message will be send by a user with the name `purr` and use the emoticon `:purr:` for as a slack icon.
 
 ## installation
 
@@ -79,10 +74,9 @@ Example JSON
   "slack_token": "secret_token",
   "slack_channel": "myteamchat",
   "filters": {
-    "users": [
-      "user1",
-      "user2"
-    ]
+    "wip": true,
+    "users": [],
+    "review": false
   }
 }
 ```
@@ -105,6 +99,22 @@ export SLACK_CHANNEL="my_slack_room"
 export FILTER_USERS="user1,user2"
 ```
 
+### filters
+
+This is a description of the available filters and how to configure them:
+
+###### wip bool, default: enabled
+
+Will filter all requests which title begins with `WIP` or `[WIP]`, case-sensitive
+
+###### review bool, default: enabled
+
+Will filter all Github request that has a "Changes requested" peer review
+
+######  users list of strings, default: disabled
+
+Will filter all pull requests where the author or assignee is not in the list of users
+
 ## run it
 
 `purr --config my_team.json`
@@ -120,5 +130,3 @@ GITHUB_REPOS="user_org/repo1,user_org/repo2" # comma separated
 SLACK_CHANNEL="my_slack_room"
 0 8 * * * username /usr/bin/purr --config /etc/purr/my_team.json
 ```
-
-

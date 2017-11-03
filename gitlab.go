@@ -30,7 +30,7 @@ func trawlGitLab(conf *Config, log Logger) <-chan *PullRequest {
 
 		go func(repoName string) {
 			defer wg.Done()
-			log.Infof("fetching GitLab PRs for %s\n", repoName)
+			log.Debugf("fetching GitLab PRs for %s\n", repoName)
 
 			pullRequests, _, err := client.MergeRequests.ListMergeRequests(repoName, options)
 			if err != nil {

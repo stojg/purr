@@ -2,6 +2,38 @@ package main
 
 import "testing"
 
+type mockFilter bool
+
+func (m mockFilter) Filter(p *PullRequest) bool {
+	return bool(m)
+}
+
+func TestFilter_NumFilteredNone(t *testing.T) {
+	filters := &Filters{}
+	filters.Add(mockFilter(true))
+
+	filters.Filter(&PullRequest{})
+	filters.Filter(&PullRequest{})
+	filters.Filter(&PullRequest{})
+
+	if filters.NumFiltered() != 0 {
+		t.Errorf("Expected 0 filtered events, got %d", filters.NumFiltered())
+	}
+}
+
+func TestFilter_NumFilteredAll(t *testing.T) {
+	filters := &Filters{}
+	filters.Add(mockFilter(false))
+
+	filters.Filter(&PullRequest{})
+	filters.Filter(&PullRequest{})
+	filters.Filter(&PullRequest{})
+
+	if filters.NumFiltered() != 3 {
+		t.Errorf("Expected 3 filtered events, got %d", filters.NumFiltered())
+	}
+}
+
 func TestFilters_FilterUsers(t *testing.T) {
 
 	tests := []struct {
@@ -16,9 +48,8 @@ func TestFilters_FilterUsers(t *testing.T) {
 		{pr: &PullRequest{Assignee: "john"}, users: []string{"jane"}, expected: false},
 	}
 	for i, test := range tests {
-		filters := &Filters{
-			Users: test.users,
-		}
+		filters := &Filters{}
+		filters.Add(UserFilter(test.users))
 		actual := filters.Filter(test.pr)
 		if actual != test.expected {
 			t.Errorf("case %d. Expected Filter '%t', got '%t', users %s, author: '%s', assigned: '%s'", i+1, test.expected, actual, test.users, test.pr.Author, test.pr.Assignee)
@@ -44,9 +75,8 @@ func TestWorkInProgressFilter_Filter(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		filters := &Filters{
-			WorkInProgress: true,
-		}
+		filters := &Filters{}
+		filters.Add(WIPFilter(true))
 		actual := filters.Filter(test.pr)
 		if actual != test.expected {
 			t.Errorf("Expected '%t', got '%t' for title %s", test.expected, actual, test.pr.Title)
@@ -72,9 +102,8 @@ func TestWorkInProgressFilter_FilterDisabled(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		filters := &Filters{
-			WorkInProgress: false,
-		}
+		filters := &Filters{}
+		filters.Add(WIPFilter(false))
 		actual := filters.Filter(test.pr)
 		if actual != test.expected {
 			t.Errorf("Expected '%t', got '%t' for title %s", test.expected, actual, test.pr.Title)
@@ -93,9 +122,8 @@ func TestReviewFilter_Filter(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		filters := &Filters{
-			RequiresChanges: true,
-		}
+		filters := &Filters{}
+		filters.Add(ReviewFilter(true))
 		actual := filters.Filter(test.pr)
 		if actual != test.expected {
 			t.Errorf("Expected '%t', got '%t'", test.expected, actual)
@@ -113,9 +141,8 @@ func TestReviewFilter_FilterDisabled(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		filters := &Filters{
-			RequiresChanges: false,
-		}
+		filters := &Filters{}
+		filters.Add(ReviewFilter(false))
 		actual := filters.Filter(test.pr)
 		if actual != test.expected {
 			t.Errorf("case %d. Expected '%t', got '%t'", i+1, test.expected, actual)

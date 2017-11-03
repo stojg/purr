@@ -71,7 +71,7 @@ func main() {
 
 	// format takes a channel of pull requests and returns a message that groups
 	// pull request into repos and formats them into a slack friendly format
-	message := format(filteredPRs)
+	message := format(conf.Filters, filteredPRs)
 
 	if message.String() == "" {
 		logger.Debugf("No PRs found\n")
@@ -131,7 +131,7 @@ func filter(filters *Filters, in <-chan *PullRequest, log Logger) chan *PullRequ
 }
 
 // format converts all pull requests into a message that is grouped by repo formatted for slack
-func format(prs <-chan *PullRequest) fmt.Stringer {
+func format(filters *Filters, prs <-chan *PullRequest) fmt.Stringer {
 	var numPRs int
 	var oldest *PullRequest
 	repositories := make(map[string][]*PullRequest)
@@ -168,6 +168,7 @@ func format(prs <-chan *PullRequest) fmt.Stringer {
 		fmt.Fprintf(buf, "\nThere are currently %d open pull requests", numPRs)
 		fmt.Fprintf(buf, " and the oldest (<%s|PR #%d>) was updated %s\n", oldest.WebLink, oldest.ID, humanize.Time(oldest.Updated))
 	}
+	fmt.Fprintf(buf, "%d pull requests was filtered from this result\n", filters.NumFiltered())
 	return buf
 }
 

@@ -83,19 +83,10 @@ func TestNewConfig(t *testing.T) {
 		return
 	}
 
-	if len(config.Filters.Users) != 2 {
-		t.Errorf("Expected 2 filtered user, got got '%d'", len(config.Filters.Users))
+	if len(config.Filters.filters) != 3 {
+		t.Errorf("expected 3 filters, got %d", len(config.Filters.filters))
 		return
 	}
-
-	if !config.Filters.RequiresChanges {
-		t.Errorf("Didnt expected filter 'review' to be disabled")
-	}
-
-	if !config.Filters.WorkInProgress {
-		t.Errorf("Didnt expected filter 'wip' to be enabled")
-	}
-
 }
 
 func TestNewConfig_NoFilters(t *testing.T) {
@@ -113,17 +104,8 @@ func TestNewConfig_NoFilters(t *testing.T) {
 		return
 	}
 
-	if len(config.Filters.Users) != 0 {
-		t.Errorf("Expected 0 filtered users, got got '%d'", len(config.Filters.Users))
+	if len(config.Filters.filters) != 3 {
+		t.Errorf("Expected 3 filters, got got '%d'", len(config.Filters.filters))
 		return
 	}
-
-	if config.Filters.RequiresChanges {
-		t.Errorf("Didnt expected filter 'review' to be enabled")
-	}
-
-	if config.Filters.WorkInProgress {
-		t.Errorf("Didnt expected filter 'wip' to be enabled")
-	}
-
 }

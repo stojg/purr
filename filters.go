@@ -8,23 +8,28 @@ type Filter interface {
 }
 
 type Filters struct {
-	Users           UserFilter   `json:"users"`
-	WorkInProgress  WIPFilter    `json:"wip"`
-	RequiresChanges ReviewFilter `json:"review"`
+	filters  []Filter
+	filtered int
+}
+
+// Add adds a filter to the internal list of filters
+func (f *Filters) Add(a Filter) {
+	f.filters = append(f.filters, a)
 }
 
 // Filter returns true if a PR should be kept and false if it should be discarded
 func (f *Filters) Filter(p *PullRequest) bool {
-	if !f.Users.Filter(p) {
-		return false
-	}
-	if !f.WorkInProgress.Filter(p) {
-		return false
-	}
-	if !f.RequiresChanges.Filter(p) {
-		return false
+	for _, filter := range f.filters {
+		if !filter.Filter(p) {
+			f.filtered++
+			return false
+		}
 	}
 	return true
+}
+
+func (f *Filters) NumFiltered() int {
+	return f.filtered
 }
 
 // UserFilter filters out any PRs that is not authored or assigned to a user

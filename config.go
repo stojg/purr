@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	//"github.com/mitchellh/mapstructure"
 )
 
 // Config contains the settings from the user
@@ -24,62 +25,78 @@ type Config struct {
 
 func newConfig(filePath string) (*Config, error) {
 
-	c := &Config{
-		// default filters if not set in configuration
-		Filters: &Filters{
-			WorkInProgress:  true,
-			RequiresChanges: true,
-		},
+	config := &Config{
+		Filters: &Filters{},
+	}
+
+	// the config Filters is an slice of interfaces, so we need to manually set defaults and add them to the Config
+	filters := struct {
+		Users  UserFilter
+		WIP    WIPFilter    `json:"wip"`
+		Review ReviewFilter `json:"review"`
+	}{
+		WIP: true,
+		Review: true,
 	}
 
 	if filePath != "" {
 		file, err := ioutil.ReadFile(filePath)
 		if err != nil {
-			return c, fmt.Errorf("Error during config read: %s", err)
+			return config, fmt.Errorf("Error during config read: %s", err)
 		}
 
-		if err := json.Unmarshal(file, &c); err != nil {
-			return c, fmt.Errorf("Error during config read: %s", err)
+		// populate as much as possible into the config
+		if err := json.Unmarshal(file, &config); err != nil {
+			return config, fmt.Errorf("Error during config read: %s", err)
+		}
+
+		if err := json.Unmarshal(file, &filters); err != nil {
+			return config, fmt.Errorf("Error during config read: %s", err)
 		}
 	}
 
 	if os.Getenv("GITHUB_TOKEN") != "" {
-		c.GitHubToken = os.Getenv("GITHUB_TOKEN")
+		config.GitHubToken = os.Getenv("GITHUB_TOKEN")
 	}
 	if os.Getenv("GITHUB_ORGANISATIONS") != "" {
-		c.GitHubOrganisations = strings.Split(os.Getenv("GITHUB_ORGANISATIONS"), ",")
+		config.GitHubOrganisations = strings.Split(os.Getenv("GITHUB_ORGANISATIONS"), ",")
 	}
 	if os.Getenv("GITHUB_USERS") != "" {
-		c.GitHubUsers = strings.Split(os.Getenv("GITHUB_USERS"), ",")
+		config.GitHubUsers = strings.Split(os.Getenv("GITHUB_USERS"), ",")
 	}
 	if os.Getenv("GITHUB_REPOS") != "" {
-		c.GitHubRepos = strings.Split(os.Getenv("GITHUB_REPOS"), ",")
+		config.GitHubRepos = strings.Split(os.Getenv("GITHUB_REPOS"), ",")
 	}
 	if os.Getenv("GITLAB_TOKEN") != "" {
-		c.GitLabToken = os.Getenv("GITLAB_TOKEN")
+		config.GitLabToken = os.Getenv("GITLAB_TOKEN")
 	}
 	if os.Getenv("GITLAB_REPOS") != "" {
-		c.GitLabRepos = strings.Split(os.Getenv("GITLAB_REPOS"), ",")
+		config.GitLabRepos = strings.Split(os.Getenv("GITLAB_REPOS"), ",")
 	}
 	if os.Getenv("GITLAB_URL") != "" {
-		c.GitlabURL = os.Getenv("GITLAB_URL")
+		config.GitlabURL = os.Getenv("GITLAB_URL")
 	}
 	if os.Getenv("SLACK_TOKEN") != "" {
-		c.SlackToken = os.Getenv("SLACK_TOKEN")
+		config.SlackToken = os.Getenv("SLACK_TOKEN")
 	}
 	if os.Getenv("SLACK_CHANNEL") != "" {
-		c.SlackChannel = os.Getenv("SLACK_CHANNEL")
+		config.SlackChannel = os.Getenv("SLACK_CHANNEL")
 	}
 	if os.Getenv("FILTER_USERS") != "" {
-		c.Filters.Users = strings.Split(os.Getenv("FILTER_USERS"), ",")
+		filters.Users = strings.Split(os.Getenv("FILTER_USERS"), ",")
 	}
 	if os.Getenv("FILTER_WIP") != "" {
-		c.Filters.WorkInProgress = os.Getenv("FILTER_WIP") == "true"
+		filters.WIP = os.Getenv("FILTER_WIP") == "true"
 	}
 	if os.Getenv("FILTER_REVIEW") != "" {
-		c.Filters.RequiresChanges = os.Getenv("FILTER_REVIEW") == "true"
+		filters.Review = os.Getenv("FILTER_REVIEW") == "true"
 	}
-	return c, nil
+
+	config.Filters.Add(filters.Users)
+	config.Filters.Add(filters.Review)
+	config.Filters.Add(filters.WIP)
+
+	return config, nil
 }
 
 func (c *Config) validate() []error {
@@ -109,11 +126,7 @@ func configHelp() {
 		GitlabURL:           "https://www.example.com",
 		SlackToken:          "secret_token",
 		SlackChannel:        "myteamchat",
-		Filters: &Filters{
-			Users:           []string{"user1", "user2"},
-			RequiresChanges: true,
-			WorkInProgress:  true,
-		},
+		Filters:             &Filters{},
 	}
 
 	b, err := json.MarshalIndent(exampleConfig, "", "  ")
