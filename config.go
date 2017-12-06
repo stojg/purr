@@ -30,13 +30,20 @@ func newConfig(filePath string) (*Config, error) {
 	}
 
 	// the config Filters is an slice of interfaces, so we need to manually set defaults and add them to the Config
-	filters := struct {
-		Users  UserFilter
+	type filters struct {
+		Users  UserFilter   `json:"users"`
 		WIP    WIPFilter    `json:"wip"`
 		Review ReviewFilter `json:"review"`
+	}
+
+	filterConfig := struct {
+		Filters filters
 	}{
-		WIP: true,
-		Review: true,
+		// default filters
+		Filters: filters{
+			WIP:    true,
+			Review: true,
+		},
 	}
 
 	if filePath != "" {
@@ -50,7 +57,7 @@ func newConfig(filePath string) (*Config, error) {
 			return config, fmt.Errorf("Error during config read: %s", err)
 		}
 
-		if err := json.Unmarshal(file, &filters); err != nil {
+		if err := json.Unmarshal(file, &filterConfig); err != nil {
 			return config, fmt.Errorf("Error during config read: %s", err)
 		}
 	}
@@ -83,18 +90,18 @@ func newConfig(filePath string) (*Config, error) {
 		config.SlackChannel = os.Getenv("SLACK_CHANNEL")
 	}
 	if os.Getenv("FILTER_USERS") != "" {
-		filters.Users = strings.Split(os.Getenv("FILTER_USERS"), ",")
+		filterConfig.Filters.Users = strings.Split(os.Getenv("FILTER_USERS"), ",")
 	}
 	if os.Getenv("FILTER_WIP") != "" {
-		filters.WIP = os.Getenv("FILTER_WIP") == "true"
+		filterConfig.Filters.WIP = os.Getenv("FILTER_WIP") == "true"
 	}
 	if os.Getenv("FILTER_REVIEW") != "" {
-		filters.Review = os.Getenv("FILTER_REVIEW") == "true"
+		filterConfig.Filters.Review = os.Getenv("FILTER_REVIEW") == "true"
 	}
 
-	config.Filters.Add(filters.Users)
-	config.Filters.Add(filters.Review)
-	config.Filters.Add(filters.WIP)
+	config.Filters.Add(filterConfig.Filters.Users)
+	config.Filters.Add(filterConfig.Filters.Review)
+	config.Filters.Add(filterConfig.Filters.WIP)
 
 	config.GitHubRepos = deduplicate(config.GitHubRepos)
 	config.GitLabRepos = deduplicate(config.GitLabRepos)

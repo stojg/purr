@@ -1,0 +1,31 @@
+{
+    "github_token": "secret_github_token",
+    "github_organisations": [
+        "facebook"
+    ],
+    "github_users": [
+        "stojg"
+    ],
+    "github_repos": [
+        "user1/repo1",
+        "user2/repo1"
+    ],
+    "gitlab_token": "secret_gitlab_token",
+    "gitlab_repos": [
+        "project1/repo1",
+        "project2/repo1"
+    ],
+    "gitlab_url": "https://www.example.com",
+    "slack_token": "secret_slack_token",
+    "slack_channel": "myteamchat",
+    "user_whitelist": [
+        "user1",
+        "user2"
+    ],
+
+    "filters": {
+        "Users": [ ],
+        "wip": false,
+        "review": false
+    }
+}

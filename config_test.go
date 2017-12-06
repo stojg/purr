@@ -89,6 +89,25 @@ func TestNewConfig(t *testing.T) {
 		t.Errorf("expected 3 filters, got %d", len(config.Filters.filters))
 		return
 	}
+
+	for _, filter := range config.Filters.filters {
+		switch v := filter.(type) {
+		case UserFilter:
+			if len(v) != 2 {
+				t.Errorf("expected 2 users in UserFilter, got %d", len(v))
+			}
+		case WIPFilter:
+			if !v {
+				t.Errorf("expected WIPFilter to be enabled")
+			}
+		case ReviewFilter:
+			if !v {
+				t.Errorf("expected ReviewFilter to be enabled")
+			}
+		default:
+			t.Errorf("unknown filter, %+v", v)
+		}
+	}
 }
 
 func TestNewConfig_NoFilters(t *testing.T) {
@@ -109,6 +128,46 @@ func TestNewConfig_NoFilters(t *testing.T) {
 	if len(config.Filters.filters) != 3 {
 		t.Errorf("Expected 3 filters, got '%d'", len(config.Filters.filters))
 		return
+	}
+}
+
+func TestNewConfig_DisabledFilters(t *testing.T) {
+	config, err := newConfig("testdata/test_config_disabled_filters.json")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	validationErrors := config.validate()
+	if len(validationErrors) != 0 {
+		for _, err := range validationErrors {
+			t.Errorf("Did not expect validation error: %+v", err)
+		}
+		return
+	}
+
+	if len(config.Filters.filters) != 3 {
+		t.Errorf("expected 3 filters, got %d", len(config.Filters.filters))
+		return
+	}
+
+	for _, filter := range config.Filters.filters {
+		switch v := filter.(type) {
+		case UserFilter:
+			if len(v) != 0 {
+				t.Errorf("expected 0 users in UserFilter, got %d", len(v))
+			}
+		case WIPFilter:
+			if v {
+				t.Errorf("expected WIPFilter to be disabled")
+			}
+		case ReviewFilter:
+			if v {
+				t.Errorf("expected ReviewFilter to be disabled")
+			}
+		default:
+			t.Errorf("unknown filter, %+v", v)
+		}
 	}
 }
 
