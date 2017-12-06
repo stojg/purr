@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   add further global filters
 - enable and disable filters via the config
 - output the number of filtered pull requests
+- deduplicate github and gitlab repositories
 
 ## [0.6.0] - 2017-10-13
 

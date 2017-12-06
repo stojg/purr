@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestNewConfig(t *testing.T) {
 	config, err := newConfig("testdata/test_config.json")
@@ -105,7 +107,31 @@ func TestNewConfig_NoFilters(t *testing.T) {
 	}
 
 	if len(config.Filters.filters) != 3 {
-		t.Errorf("Expected 3 filters, got got '%d'", len(config.Filters.filters))
+		t.Errorf("Expected 3 filters, got '%d'", len(config.Filters.filters))
 		return
+	}
+}
+
+func TestNewConfig_Deduplication(t *testing.T) {
+	config, err := newConfig("testdata/test_config_duplicate_repos.json")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	validationErrors := config.validate()
+	if len(validationErrors) != 0 {
+		for _, err := range validationErrors {
+			t.Errorf("Did not expect validation error: %+v", err)
+		}
+		return
+	}
+
+	if len(config.GitHubRepos) != 2 {
+		t.Errorf("Expected 2 github repos, got '%d'", len(config.GitHubRepos))
+	}
+
+	if len(config.GitLabRepos) != 2 {
+		t.Errorf("Expected 2 gitlab repos, got '%d'", len(config.GitLabRepos))
 	}
 }

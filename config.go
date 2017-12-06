@@ -96,7 +96,21 @@ func newConfig(filePath string) (*Config, error) {
 	config.Filters.Add(filters.Review)
 	config.Filters.Add(filters.WIP)
 
+	config.GitHubRepos = deduplicate(config.GitHubRepos)
+	config.GitLabRepos = deduplicate(config.GitLabRepos)
 	return config, nil
+}
+
+func deduplicate(s []string) []string {
+	m := make(map[string]bool)
+	for _, v := range s {
+		if _, seen := m[v]; !seen {
+			s[len(m)] = v
+			m[v] = true
+		}
+	}
+	s = s[:len(m)]
+	return s
 }
 
 func (c *Config) validate() []error {
