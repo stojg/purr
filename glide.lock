@@ -1,5 +1,5 @@
-hash: a3a06e228a6cc12faef14c74e7658e001114c27a44118d6b1c665ae08a304422
-updated: 2017-11-03T16:35:49.671012256+13:00
+hash: 3baa477ea427f8be391b1daf6193fee69ce592756cc589d9e33e910b13003e07
+updated: 2018-09-18T08:12:39.012708+12:00
 imports:
 - name: github.com/bluele/slack
   version: fb5cadcf9ed2433b94f44b2bc046a7f94554533e
@@ -10,7 +10,7 @@ imports:
   subpackages:
   - proto
 - name: github.com/google/go-github
-  version: 464f5a91396a85da262abcac0b0a0aaf5b8f3c02
+  version: 1048f8804c0e60f23237cfa1b59cc5f521bf9826
   subpackages:
   - github
 - name: github.com/google/go-querystring
@@ -18,7 +18,7 @@ imports:
   subpackages:
   - query
 - name: github.com/xanzy/go-gitlab
-  version: 5b756e2fdc9f21fd4791fa1453b8fe01af0f82e2
+  version: b8189bef4d4ee2b365a2c03a8bc99e4f3600743e
 - name: golang.org/x/net
   version: a04bdaca5b32abe1c069418fb7088ae607de5bd0
   subpackages:

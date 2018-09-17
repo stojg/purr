@@ -3,6 +3,6 @@ import:
 - package: github.com/bluele/slack
 - package: github.com/dustin/go-humanize
 - package: github.com/xanzy/go-gitlab
-  version: ~0.5.1
+  version: ~0.11.0
 - package: golang.org/x/oauth2
 - package: github.com/google/go-github

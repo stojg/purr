@@ -15,12 +15,11 @@ func trawlGitLab(conf *Config, log Logger) <-chan *PullRequest {
 	var wg sync.WaitGroup
 
 	client := gitlab.NewClient(nil, conf.GitLabToken)
-	if err := client.SetBaseURL(conf.GitlabURL + "/api/v3"); err != nil {
+	if err := client.SetBaseURL(conf.GitlabURL + "/api/v4"); err != nil {
 		usageAndExit(err.Error(), 1)
 	}
 
-	status := "opened"
-	options := &gitlab.ListMergeRequestsOptions{State: &status}
+	const status = "opened"
 
 	// spin out each request to find PR on a repo into a separate goroutine
 	for _, repo := range conf.GitLabRepos {
@@ -32,7 +31,10 @@ func trawlGitLab(conf *Config, log Logger) <-chan *PullRequest {
 			defer wg.Done()
 			log.Debugf("fetching GitLab PRs for %s\n", repoName)
 
-			pullRequests, _, err := client.MergeRequests.ListMergeRequests(repoName, options)
+			opts := &gitlab.ListProjectMergeRequestsOptions{
+				State: gitlab.String(status),
+			}
+			pullRequests, _, err := client.MergeRequests.ListProjectMergeRequests(repoName, opts)
 			if err != nil {
 				log.Infof("Couldn't fetch PRs from GitLab (%s): %s\n", repoName, err)
 				return
