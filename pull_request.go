@@ -19,6 +19,7 @@ type PullRequest struct {
 	Repository      string
 	RequiresChanges bool
 	Approved        bool
+	Draft           bool
 }
 
 func (p *PullRequest) String() string {

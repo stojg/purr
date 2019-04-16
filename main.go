@@ -168,7 +168,7 @@ func format(filters *Filters, prs <-chan *PullRequest) fmt.Stringer {
 		fmt.Fprintf(buf, "\nThere are currently %d open pull requests", numPRs)
 		fmt.Fprintf(buf, " and the oldest (<%s|PR #%d>) was updated %s\n", oldest.WebLink, oldest.ID, humanize.Time(oldest.Updated))
 	}
-	fmt.Fprintf(buf, "%d pull requests was filtered from this result\n", filters.NumFiltered())
+	fmt.Fprintf(buf, "%d pull request(s) filtered from these results\n", filters.NumFiltered())
 	return buf
 }
 
