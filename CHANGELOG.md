@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+ - Filter out Github [Draft Pull Requests](https://github.blog/2019-02-14-introducing-draft-pull-requests/)
+
 ## [0.8.0] - 2018-09-18
 
 - Use gitlab API v4 instead of v3
