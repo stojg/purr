@@ -20,17 +20,18 @@ type MergeRequestApprovalsService struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/merge_request_approvals.html#merge-request-level-mr-approvals
 type MergeRequestApprovals struct {
-	ID                int        `json:"id"`
-	ProjectID         int        `json:"project_id"`
-	Title             string     `json:"title"`
-	Description       string     `json:"description"`
-	State             string     `json:"state"`
-	CreatedAt         *time.Time `json:"created_at"`
-	UpdatedAt         *time.Time `json:"updated_at"`
-	MergeStatus       string     `json:"merge_status"`
-	ApprovalsRequired int        `json:"approvals_required"`
-	ApprovalsLeft     int        `json:"approvals_left"`
-	ApprovedBy        []struct {
+	ID                   int        `json:"id"`
+	ProjectID            int        `json:"project_id"`
+	Title                string     `json:"title"`
+	Description          string     `json:"description"`
+	State                string     `json:"state"`
+	CreatedAt            *time.Time `json:"created_at"`
+	UpdatedAt            *time.Time `json:"updated_at"`
+	MergeStatus          string     `json:"merge_status"`
+	ApprovalsBeforeMerge int        `json:"approvals_before_merge"`
+	ApprovalsRequired    int        `json:"approvals_required"`
+	ApprovalsLeft        int        `json:"approvals_left"`
+	ApprovedBy           []struct {
 		User struct {
 			ID        int    `json:"id"`
 			Name      string `json:"name"`
@@ -76,7 +77,7 @@ func (m MergeRequestApprovals) String() string {
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/merge_request_approvals.html#approve-merge-request
 type ApproveMergeRequestOptions struct {
-	Sha *string `url:"sha,omitempty" json:"sha,omitempty"`
+	SHA *string `url:"sha,omitempty" json:"sha,omitempty"`
 }
 
 // ApproveMergeRequest approves a merge request on GitLab. If a non-empty sha
@@ -91,7 +92,7 @@ func (s *MergeRequestApprovalsService) ApproveMergeRequest(pid interface{}, mr i
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/approve", url.QueryEscape(project), mr)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest("POST", u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -116,7 +117,7 @@ func (s *MergeRequestApprovalsService) UnapproveMergeRequest(pid interface{}, mr
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/unapprove", url.QueryEscape(project), mr)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest("POST", u, nil, options)
 	if err != nil {
 		return nil, err
 	}

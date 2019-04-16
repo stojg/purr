@@ -3,6 +3,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// These examples are inlined in godoc.
+
 package github_test
 
 import (
@@ -10,7 +12,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/go-github/v18/github"
+	"github.com/google/go-github/v24/github"
 )
 
 func ExampleClient_Markdown() {

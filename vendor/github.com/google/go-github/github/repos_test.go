@@ -19,10 +19,10 @@ func TestRepositoriesService_List_authenticatedUser(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
 
-	acceptHeaders := []string{mediaTypeCodesOfConductPreview, mediaTypeTopicsPreview}
+	wantAcceptHeaders := []string{mediaTypeTopicsPreview}
 	mux.HandleFunc("/user/repos", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		testHeader(t, r, "Accept", strings.Join(acceptHeaders, ", "))
+		testHeader(t, r, "Accept", strings.Join(wantAcceptHeaders, ", "))
 		fmt.Fprint(w, `[{"id":1},{"id":2}]`)
 	})
 
@@ -41,10 +41,10 @@ func TestRepositoriesService_List_specifiedUser(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
 
-	acceptHeaders := []string{mediaTypeCodesOfConductPreview, mediaTypeTopicsPreview}
+	wantAcceptHeaders := []string{mediaTypeTopicsPreview}
 	mux.HandleFunc("/users/u/repos", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		testHeader(t, r, "Accept", strings.Join(acceptHeaders, ", "))
+		testHeader(t, r, "Accept", strings.Join(wantAcceptHeaders, ", "))
 		testFormValues(t, r, values{
 			"visibility":  "public",
 			"affiliation": "owner,collaborator",
@@ -77,10 +77,10 @@ func TestRepositoriesService_List_specifiedUser_type(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
 
-	acceptHeaders := []string{mediaTypeCodesOfConductPreview, mediaTypeTopicsPreview}
+	wantAcceptHeaders := []string{mediaTypeTopicsPreview}
 	mux.HandleFunc("/users/u/repos", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		testHeader(t, r, "Accept", strings.Join(acceptHeaders, ", "))
+		testHeader(t, r, "Accept", strings.Join(wantAcceptHeaders, ", "))
 		testFormValues(t, r, values{
 			"type": "owner",
 		})
@@ -113,10 +113,10 @@ func TestRepositoriesService_ListByOrg(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
 
-	acceptHeaders := []string{mediaTypeCodesOfConductPreview, mediaTypeTopicsPreview}
+	wantAcceptHeaders := []string{mediaTypeTopicsPreview}
 	mux.HandleFunc("/orgs/o/repos", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		testHeader(t, r, "Accept", strings.Join(acceptHeaders, ", "))
+		testHeader(t, r, "Accept", strings.Join(wantAcceptHeaders, ", "))
 		testFormValues(t, r, values{
 			"type": "forks",
 			"page": "2",
@@ -172,15 +172,19 @@ func TestRepositoriesService_Create_user(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
 
-	input := &Repository{Name: String("n")}
+	input := &Repository{
+		Name:     String("n"),
+		Archived: Bool(true), // not passed along.
+	}
 
 	mux.HandleFunc("/user/repos", func(w http.ResponseWriter, r *http.Request) {
-		v := new(Repository)
+		v := new(createRepoRequest)
 		json.NewDecoder(r.Body).Decode(v)
 
 		testMethod(t, r, "POST")
-		if !reflect.DeepEqual(v, input) {
-			t.Errorf("Request body = %+v, want %+v", v, input)
+		want := &createRepoRequest{Name: String("n")}
+		if !reflect.DeepEqual(v, want) {
+			t.Errorf("Request body = %+v, want %+v", v, want)
 		}
 
 		fmt.Fprint(w, `{"id":1}`)
@@ -201,15 +205,19 @@ func TestRepositoriesService_Create_org(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
 
-	input := &Repository{Name: String("n")}
+	input := &Repository{
+		Name:     String("n"),
+		Archived: Bool(true), // not passed along.
+	}
 
 	mux.HandleFunc("/orgs/o/repos", func(w http.ResponseWriter, r *http.Request) {
-		v := new(Repository)
+		v := new(createRepoRequest)
 		json.NewDecoder(r.Body).Decode(v)
 
 		testMethod(t, r, "POST")
-		if !reflect.DeepEqual(v, input) {
-			t.Errorf("Request body = %+v, want %+v", v, input)
+		want := &createRepoRequest{Name: String("n")}
+		if !reflect.DeepEqual(v, want) {
+			t.Errorf("Request body = %+v, want %+v", v, want)
 		}
 
 		fmt.Fprint(w, `{"id":1}`)
@@ -226,22 +234,14 @@ func TestRepositoriesService_Create_org(t *testing.T) {
 	}
 }
 
-func TestRepositoriesService_Create_invalidOrg(t *testing.T) {
-	client, _, _, teardown := setup()
-	defer teardown()
-
-	_, _, err := client.Repositories.Create(context.Background(), "%", nil)
-	testURLParseError(t, err)
-}
-
 func TestRepositoriesService_Get(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
 
-	acceptHeaders := []string{mediaTypeCodesOfConductPreview, mediaTypeTopicsPreview}
+	wantAcceptHeaders := []string{mediaTypeCodesOfConductPreview, mediaTypeTopicsPreview}
 	mux.HandleFunc("/repos/o/r", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		testHeader(t, r, "Accept", strings.Join(acceptHeaders, ", "))
+		testHeader(t, r, "Accept", strings.Join(wantAcceptHeaders, ", "))
 		fmt.Fprint(w, `{"id":1,"name":"n","description":"d","owner":{"login":"l"},"license":{"key":"mit"}}`)
 	})
 
@@ -1052,6 +1052,72 @@ func TestRepositoriesService_RemoveAdminEnforcement(t *testing.T) {
 	_, err := client.Repositories.RemoveAdminEnforcement(context.Background(), "o", "r", "b")
 	if err != nil {
 		t.Errorf("Repositories.RemoveAdminEnforcement returned error: %v", err)
+	}
+}
+
+func TestRepositoriesService_GetSignaturesProtectedBranch(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/repos/o/r/branches/b/protection/required_signatures", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		testHeader(t, r, "Accept", mediaTypeSignaturePreview)
+		fmt.Fprintf(w, `{"url":"/repos/o/r/branches/b/protection/required_signatures","enabled":false}`)
+	})
+
+	signature, _, err := client.Repositories.GetSignaturesProtectedBranch(context.Background(), "o", "r", "b")
+	if err != nil {
+		t.Errorf("Repositories.GetSignaturesProtectedBranch returned error: %v", err)
+	}
+
+	want := &SignaturesProtectedBranch{
+		URL:     String("/repos/o/r/branches/b/protection/required_signatures"),
+		Enabled: Bool(false),
+	}
+
+	if !reflect.DeepEqual(signature, want) {
+		t.Errorf("Repositories.GetSignaturesProtectedBranch returned %+v, want %+v", signature, want)
+	}
+}
+
+func TestRepositoriesService_RequireSignaturesOnProtectedBranch(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/repos/o/r/branches/b/protection/required_signatures", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "POST")
+		testHeader(t, r, "Accept", mediaTypeSignaturePreview)
+		fmt.Fprintf(w, `{"url":"/repos/o/r/branches/b/protection/required_signatures","enabled":true}`)
+	})
+
+	signature, _, err := client.Repositories.RequireSignaturesOnProtectedBranch(context.Background(), "o", "r", "b")
+	if err != nil {
+		t.Errorf("Repositories.RequireSignaturesOnProtectedBranch returned error: %v", err)
+	}
+
+	want := &SignaturesProtectedBranch{
+		URL:     String("/repos/o/r/branches/b/protection/required_signatures"),
+		Enabled: Bool(true),
+	}
+
+	if !reflect.DeepEqual(signature, want) {
+		t.Errorf("Repositories.RequireSignaturesOnProtectedBranch returned %+v, want %+v", signature, want)
+	}
+}
+
+func TestRepositoriesService_OptionalSignaturesOnProtectedBranch(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/repos/o/r/branches/b/protection/required_signatures", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "DELETE")
+		testHeader(t, r, "Accept", mediaTypeSignaturePreview)
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	_, err := client.Repositories.OptionalSignaturesOnProtectedBranch(context.Background(), "o", "r", "b")
+	if err != nil {
+		t.Errorf("Repositories.OptionalSignaturesOnProtectedBranch returned error: %v", err)
 	}
 }
 

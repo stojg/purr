@@ -6,3 +6,4 @@ import:
   version: ~0.11.0
 - package: golang.org/x/oauth2
 - package: github.com/google/go-github
+  version: v24.0.1
