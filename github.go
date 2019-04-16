@@ -112,6 +112,7 @@ func trawlGitHub(conf *Config, log Logger) <-chan *PullRequest {
 							RequiresChanges: requiresChanges,
 							Approved:        approved,
 							Repository:      fmt.Sprintf("%s/%s", parts[0], parts[1]),
+							Draft:           *pr.Draft,
 						}
 						if pr.Assignee != nil {
 							pullRequest.Assignee = *pr.Assignee.Login

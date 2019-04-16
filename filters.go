@@ -60,6 +60,10 @@ func (enabled WIPFilter) Filter(p *PullRequest) bool {
 		return true
 	}
 
+	if p.Draft == true {
+		return false
+	}
+
 	if strings.Index(p.Title, "[WIP]") == 0 {
 		return false
 	}

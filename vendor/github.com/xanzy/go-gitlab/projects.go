@@ -182,18 +182,19 @@ func (s Project) String() string {
 // GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#list-projects
 type ListProjectsOptions struct {
 	ListOptions
-	Archived                 *bool            `url:"archived,omitempty" json:"archived,omitempty"`
-	OrderBy                  *string          `url:"order_by,omitempty" json:"order_by,omitempty"`
-	Sort                     *string          `url:"sort,omitempty" json:"sort,omitempty"`
-	Search                   *string          `url:"search,omitempty" json:"search,omitempty"`
-	Simple                   *bool            `url:"simple,omitempty" json:"simple,omitempty"`
-	Owned                    *bool            `url:"owned,omitempty" json:"owned,omitempty"`
-	Membership               *bool            `url:"membership,omitempty" json:"membership,omitempty"`
-	Starred                  *bool            `url:"starred,omitempty" json:"starred,omitempty"`
-	Statistics               *bool            `url:"statistics,omitempty" json:"statistics,omitempty"`
-	Visibility               *VisibilityValue `url:"visibility,omitempty" json:"visibility,omitempty"`
-	WithIssuesEnabled        *bool            `url:"with_issues_enabled,omitempty" json:"with_issues_enabled,omitempty"`
-	WithMergeRequestsEnabled *bool            `url:"with_merge_requests_enabled,omitempty" json:"with_merge_requests_enabled,omitempty"`
+	Archived                 *bool             `url:"archived,omitempty" json:"archived,omitempty"`
+	OrderBy                  *string           `url:"order_by,omitempty" json:"order_by,omitempty"`
+	Sort                     *string           `url:"sort,omitempty" json:"sort,omitempty"`
+	Search                   *string           `url:"search,omitempty" json:"search,omitempty"`
+	Simple                   *bool             `url:"simple,omitempty" json:"simple,omitempty"`
+	Owned                    *bool             `url:"owned,omitempty" json:"owned,omitempty"`
+	Membership               *bool             `url:"membership,omitempty" json:"membership,omitempty"`
+	Starred                  *bool             `url:"starred,omitempty" json:"starred,omitempty"`
+	Statistics               *bool             `url:"statistics,omitempty" json:"statistics,omitempty"`
+	Visibility               *VisibilityValue  `url:"visibility,omitempty" json:"visibility,omitempty"`
+	WithIssuesEnabled        *bool             `url:"with_issues_enabled,omitempty" json:"with_issues_enabled,omitempty"`
+	WithMergeRequestsEnabled *bool             `url:"with_merge_requests_enabled,omitempty" json:"with_merge_requests_enabled,omitempty"`
+	MinAccessLevel           *AccessLevelValue `url:"min_access_level,omitempty" json:"min_access_level,omitempty"`
 }
 
 // ListProjects gets a list of projects accessible by the authenticated user.
@@ -275,6 +276,35 @@ func (s *ProjectsService) ListProjectsUsers(pid interface{}, opt *ListProjectUse
 
 	var p []*ProjectUser
 	resp, err := s.client.Do(req, &p)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return p, resp, err
+}
+
+// ProjectLanguages is a map of strings because the response is arbitrary
+//
+// Gitlab API docs: https://docs.gitlab.com/ce/api/projects.html#languages
+type ProjectLanguages map[string]float32
+
+// GetProjectLanguages gets a list of languages used by the project
+//
+// GitLab API docs:  https://docs.gitlab.com/ce/api/projects.html#languages
+func (s *ProjectsService) GetProjectLanguages(pid interface{}, options ...OptionFunc) (*ProjectLanguages, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/languages", url.QueryEscape(project))
+
+	req, err := s.client.NewRequest("GET", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	p := new(ProjectLanguages)
+	resp, err := s.client.Do(req, p)
 	if err != nil {
 		return nil, resp, err
 	}
@@ -371,7 +401,7 @@ func (s *ProjectsService) GetProjectEvents(pid interface{}, opt *GetProjectEvent
 
 // CreateProjectOptions represents the available CreateProjects() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#create-project
+// GitLab API docs: https://docs.gitlab.com/ee/api/projects.html#create-project
 type CreateProjectOptions struct {
 	Name                                      *string           `url:"name,omitempty" json:"name,omitempty"`
 	Path                                      *string           `url:"path,omitempty" json:"path,omitempty"`
@@ -397,6 +427,7 @@ type CreateProjectOptions struct {
 	TagList                                   *[]string         `url:"tag_list,omitempty" json:"tag_list,omitempty"`
 	PrintingMergeRequestLinkEnabled           *bool             `url:"printing_merge_request_link_enabled,omitempty" json:"printing_merge_request_link_enabled,omitempty"`
 	CIConfigPath                              *string           `url:"ci_config_path,omitempty" json:"ci_config_path,omitempty"`
+	ApprovalsBeforeMerge                      *int              `url:"approvals_before_merge" json:"approvals_before_merge"`
 }
 
 // CreateProject creates a new project owned by the authenticated user.
@@ -994,4 +1025,150 @@ func (s *ProjectsService) ListProjectForks(pid interface{}, opt *ListProjectsOpt
 	}
 
 	return forks, resp, err
+}
+
+// ProjectPushRules represents a project push rule.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/projects.html#push-rules
+type ProjectPushRules struct {
+	ID                 int        `json:"id"`
+	ProjectID          int        `json:"project_id"`
+	CommitMessageRegex string     `json:"commit_message_regex"`
+	BranchNameRegex    string     `json:"branch_name_regex"`
+	DenyDeleteTag      bool       `json:"deny_delete_tag"`
+	CreatedAt          *time.Time `json:"created_at"`
+	MemberCheck        bool       `json:"member_check"`
+	PreventSecrets     bool       `json:"prevent_secrets"`
+	AuthorEmailRegex   string     `json:"author_email_regex"`
+	FileNameRegex      string     `json:"file_name_regex"`
+	MaxFileSize        int        `json:"max_file_size"`
+}
+
+// GetProjectPushRules gets the push rules of a project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/projects.html#get-project-push-rules
+func (s *ProjectsService) GetProjectPushRules(pid interface{}, options ...OptionFunc) (*ProjectPushRules, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/push_rule", url.QueryEscape(project))
+
+	req, err := s.client.NewRequest("GET", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ppr := new(ProjectPushRules)
+	resp, err := s.client.Do(req, ppr)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return ppr, resp, err
+}
+
+// AddProjectPushRuleOptions represents the available AddProjectPushRule()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/projects.html#add-project-push-rule
+type AddProjectPushRuleOptions struct {
+	DenyDeleteTag      *bool   `url:"deny_delete_tag,omitempty" json:"deny_delete_tag,omitempty"`
+	MemberCheck        *bool   `url:"member_check,omitempty" json:"member_check,omitempty"`
+	PreventSecrets     *bool   `url:"prevent_secrets,omitempty" json:"prevent_secrets,omitempty"`
+	CommitMessageRegex *string `url:"commit_message_regex,omitempty" json:"commit_message_regex,omitempty"`
+	BranchNameRegex    *string `url:"branch_name_regex,omitempty" json:"branch_name_regex,omitempty"`
+	AuthorEmailRegex   *string `url:"author_email_regex,omitempty" json:"author_email_regex,omitempty"`
+	FileNameRegex      *string `url:"file_name_regex,omitempty" json:"file_name_regex,omitempty"`
+	MaxFileSize        *int    `url:"max_file_size,omitempty" json:"max_file_size,omitempty"`
+}
+
+// AddProjectPushRule adds a push rule to a specified project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/projects.html#add-project-push-rule
+func (s *ProjectsService) AddProjectPushRule(pid interface{}, opt *AddProjectPushRuleOptions, options ...OptionFunc) (*ProjectPushRules, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/push_rule", url.QueryEscape(project))
+
+	req, err := s.client.NewRequest("POST", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ppr := new(ProjectPushRules)
+	resp, err := s.client.Do(req, ppr)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return ppr, resp, err
+}
+
+// EditProjectPushRuleOptions represents the available EditProjectPushRule()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/projects.html#edit-project-push-rule
+type EditProjectPushRuleOptions struct {
+	AuthorEmailRegex   *string `url:"author_email_regex,omitempty" json:"author_email_regex,omitempty"`
+	BranchNameRegex    *string `url:"branch_name_regex,omitempty" json:"branch_name_regex,omitempty"`
+	CommitMessageRegex *string `url:"commit_message_regex,omitempty" json:"commit_message_regex,omitempty"`
+	FileNameRegex      *string `url:"file_name_regex,omitempty" json:"file_name_regex,omitempty"`
+	DenyDeleteTag      *bool   `url:"deny_delete_tag,omitempty" json:"deny_delete_tag,omitempty"`
+	MemberCheck        *bool   `url:"member_check,omitempty" json:"member_check,omitempty"`
+	PreventSecrets     *bool   `url:"prevent_secrets,omitempty" json:"prevent_secrets,omitempty"`
+	MaxFileSize        *int    `url:"max_file_size,omitempty" json:"max_file_size,omitempty"`
+}
+
+// EditProjectPushRule edits a push rule for a specified project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/projects.html#edit-project-push-rule
+func (s *ProjectsService) EditProjectPushRule(pid interface{}, opt *EditProjectPushRuleOptions, options ...OptionFunc) (*ProjectPushRules, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/push_rule", url.QueryEscape(project))
+
+	req, err := s.client.NewRequest("PUT", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ppr := new(ProjectPushRules)
+	resp, err := s.client.Do(req, ppr)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return ppr, resp, err
+}
+
+// DeleteProjectPushRule removes a push rule from a project. This is an
+// idempotent method and can be called multiple times. Either the push rule is
+// available or not.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/projects.html#delete-project-push-rule
+func (s *ProjectsService) DeleteProjectPushRule(pid interface{}, options ...OptionFunc) (*Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("projects/%s/push_rule", url.QueryEscape(project))
+
+	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req, nil)
 }
