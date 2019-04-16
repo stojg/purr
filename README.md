@@ -105,7 +105,7 @@ This is a description of the available filters and how to configure them:
 
 ###### wip bool, default: enabled
 
-Will filter all requests which title begins with `WIP` or `[WIP]`, case-sensitive
+Will filter all requests which title begins with `WIP` or `[WIP]`, case-sensitive. If running on Github, will also filter out [Draft Pull Requests](https://github.blog/2019-02-14-introducing-draft-pull-requests/).
 
 ###### review bool, default: enabled
 
