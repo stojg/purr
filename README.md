@@ -40,7 +40,8 @@ Compiled binaries are also available at [https://github.com/stojg/purr/releases]
 
 ## development
 
-This project is using [glide](https://github.com/Masterminds/glide) for dependency management.
+This project is using [Modules](https://github.com/golang/go/wiki/Modules) for dependency management and should be built
+on go version 1.12 or higher.
 
 ## configuration
 
