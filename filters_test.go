@@ -72,6 +72,8 @@ func TestWorkInProgressFilter_Filter(t *testing.T) {
 		{pr: &PullRequest{Title: "WIP fixes bug"}, expected: false},
 		{pr: &PullRequest{Title: "WIP: fixes bug"}, expected: false},
 		{pr: &PullRequest{Title: "[WIP] fixes bug"}, expected: false},
+		{pr: &PullRequest{Title: "fixes bug", Draft: true}, expected: false},
+		{pr: &PullRequest{Title: "fixes bug", Draft: false}, expected: true},
 	}
 
 	for _, test := range tests {
@@ -99,6 +101,8 @@ func TestWorkInProgressFilter_FilterDisabled(t *testing.T) {
 		{pr: &PullRequest{Title: "WIP fixes bug"}, expected: true},
 		{pr: &PullRequest{Title: "WIP: fixes bug"}, expected: true},
 		{pr: &PullRequest{Title: "[WIP] fixes bug"}, expected: true},
+		{pr: &PullRequest{Title: "fixes bug", Draft: true}, expected: true},
+		{pr: &PullRequest{Title: "fixes bug", Draft: false}, expected: true},
 	}
 
 	for _, test := range tests {
