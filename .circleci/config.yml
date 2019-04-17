@@ -5,20 +5,14 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.9
-    working_directory: /go/src/github.com/stojg/purr
-    environment:
-      TEST_RESULTS: /tmp/test-results
+      - image: circleci/golang:1.12.4
     steps:
       - checkout
-      - run: mkdir -p $TEST_RESULTS
-      - run: go get github.com/jstemmer/go-junit-report
-      - run: go get github.com/mattn/goveralls
+      - run: go version
       - run:
           name: Run unit tests
-          command: |
-            trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
-            make test | tee ${TEST_RESULTS}/go-test.out
+          command: gotestsum --junitfile /tmp/test-results.xml -- -coverprofile=./coverage.out
+      - run: go get github.com/mattn/goveralls
       - run:
           name: coveralls.io
           command: |
@@ -27,8 +21,5 @@ jobs:
             else
               goveralls -coverprofile=./coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
             fi
-      - store_artifacts:
-          path: /tmp/test-results
-          destination: raw-test-output
       - store_test_results:
-          path: /tmp/test-results
+          path: /tmp/test-results.xml

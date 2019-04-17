@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+ - Replace glide with go mod
  - Filter out Github [Draft Pull Requests](https://github.blog/2019-02-14-introducing-draft-pull-requests/)
 
 ## [0.8.0] - 2018-09-18
