@@ -4,14 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [0.9.0] - 2019-04-17
 
 ### Changed
 
- - Replace glide with go mod
  - Filter out Github [Draft Pull Requests](https://github.blog/2019-02-14-introducing-draft-pull-requests/)
+ - Replaced dependency manager glide with go modules for go 1.12 
 
 ## [0.8.0] - 2018-09-18
+
+### Changed
 
 - Use gitlab API v4 instead of v3
 
