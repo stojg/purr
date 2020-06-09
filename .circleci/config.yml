@@ -1,25 +1,39 @@
-# Golang CircleCI 2.0 configuration file
-#
 # Check https://circleci.com/docs/2.0/language-go/ for more details
-version: 2
+version: 2.1
 jobs:
   build:
     docker:
       - image: circleci/golang:1.14.4
+    environment:
+      TEST_RESULTS: /tmp/test-results.xml
+      COVERAGE_RESULTS: /tmp/coverage.out
     steps:
       - checkout
-      - run: go version
+      - restore_cache:
+          keys:
+            - v1-pkg-cache
+      - run:
+          name: Install test dependencies
+          command: |
+            go get gotest.tools/gotestsum
+            go get github.com/mattn/goveralls
       - run:
           name: Run unit tests
-          command: gotestsum --junitfile /tmp/test-results.xml -- -coverprofile=./coverage.out
-      - run: go get github.com/mattn/goveralls
+          command: gotestsum --junitfile ${TEST_RESULTS} -- -coverprofile=${COVERAGE_RESULTS} ./...
+      - save_cache:
+          key: v1-pkg-cache
+          paths:
+            - "/go/pkg"
       - run:
           name: coveralls.io
           command: |
             if [ -z ${COVERALLS_TOKEN} ]; then
               echo "coveralls token isn't set, skipping"
             else
-              goveralls -coverprofile=./coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+              goveralls -service=circle-ci -coverprofile=${COVERAGE_RESULTS} -repotoken=$COVERALLS_TOKEN
             fi
+      - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: /tmp/test-results
+          destination: raw-test-output
       - store_test_results:
-          path: /tmp/test-results.xml
+          path: /tmp/test-results
