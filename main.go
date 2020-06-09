@@ -26,7 +26,7 @@ var (
 	cliOutput  bool
 )
 
-func init() {
+func main() {
 	flag.StringVar(&configFile, "config", "", "Read config from FILE")
 	flag.BoolVar(&debug, "d", false, "run in debug mode")
 	flag.BoolVar(&cliOutput, "o", false, "output to CLI rather than slack")
@@ -37,9 +37,6 @@ func init() {
 		configHelp()
 	}
 	flag.Parse()
-}
-
-func main() {
 
 	logger := NewStdOutLogger(debug)
 
