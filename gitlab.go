@@ -14,8 +14,8 @@ func trawlGitLab(conf *Config, log Logger) <-chan *PullRequest {
 	// trawled
 	var wg sync.WaitGroup
 
-	client := gitlab.NewClient(nil, conf.GitLabToken)
-	if err := client.SetBaseURL(conf.GitlabURL + "/api/v4"); err != nil {
+	client, err := gitlab.NewClient(conf.GitLabToken, gitlab.WithBaseURL(conf.GitlabURL+"/api/v4"))
+	if err != nil {
 		usageAndExit(err.Error(), 1)
 	}
 
